@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotLoggedInError } from './cloud-stack';
-import { getProfile, patchFromOptions, setProfile } from './profile';
+import { clearProfile, getProfile, patchFromOptions, setProfile } from './profile';
 
 function jsonRes(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as unknown as Response;
@@ -22,6 +22,13 @@ const sampleProfile = (age: number): unknown => ({
     healthConditions: [],
     medications: [],
     primaryGoals: [],
+    currentSupplements: [],
+    sleepHours: null,
+    exerciseFrequency: null,
+    dietType: null,
+    stressLevel: null,
+    tracksBloodwork: false,
+    profileCompletedAt: null,
   },
 });
 
@@ -67,6 +74,30 @@ describe('patchFromOptions', () => {
     expect(patchFromOptions({ sex: 'other' }).error).toMatch(/sex/);
     expect(patchFromOptions({ weight: '0' }).error).toMatch(/weight/);
     expect(patchFromOptions({ weightUnit: 'stone' }).error).toMatch(/weight-unit/);
+    expect(patchFromOptions({ sleepHours: '30' }).error).toMatch(/sleep-hours/);
+    expect(patchFromOptions({ exercise: 'sometimes' }).error).toMatch(/exercise/);
+    expect(patchFromOptions({ diet: 'carnivore' }).error).toMatch(/diet/);
+    expect(patchFromOptions({ stress: 'extreme' }).error).toMatch(/stress/);
+  });
+
+  it('builds lifestyle fields', () => {
+    const { patch, error } = patchFromOptions({
+      sleepHours: '7.5',
+      exercise: '3-4',
+      diet: 'keto',
+      stress: 'low',
+      currentSupplements: 'magnesium, creatine',
+      tracksBloodwork: true,
+    });
+    expect(error).toBeNull();
+    expect(patch).toEqual({
+      sleepHours: 7.5,
+      exerciseFrequency: '3-4',
+      dietType: 'keto',
+      stressLevel: 'low',
+      currentSupplements: ['magnesium', 'creatine'],
+      tracksBloodwork: true,
+    });
   });
 
   it('is empty when no recognised options are present', () => {
@@ -101,5 +132,15 @@ describe('profile wire helpers', () => {
     expect(String(url)).toContain('/me/profile');
     expect(init.method).toBe('PUT');
     expect(JSON.parse(String(init.body))).toEqual({ age: 40 });
+  });
+
+  it('clearProfile DELETEs /me/profile with the Bearer token', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    const fetchImpl = vi.fn().mockResolvedValue(jsonRes({ status: 'cleared' }));
+    await clearProfile(fetchImpl as unknown as typeof fetch);
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toContain('/me/profile');
+    expect(init.method).toBe('DELETE');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer sct_live_x');
   });
 });

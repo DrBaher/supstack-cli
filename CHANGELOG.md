@@ -14,6 +14,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `--age`, `--sex`, `--weight`, `--weight-unit`, `--conditions`, `--medications`,
   `--goals` (comma-separated lists). Only the flags you pass change; the rest are
   left as-is. `--json` supported on both.
+- **`supstack profile clear`** — delete your health profile.
 
 ## [0.4.0] — Cloud stack sync (Phase 2, Increment B)
 

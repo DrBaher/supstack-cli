@@ -167,10 +167,23 @@ export function buildProgram(): Command {
     .option('--conditions <list>', 'comma-separated health conditions')
     .option('--medications <list>', 'comma-separated medications')
     .option('--goals <list>', 'comma-separated goal ids')
+    .option('--current-supplements <list>', 'comma-separated supplement slugs you take')
+    .option('--sleep-hours <n>', 'average nightly sleep hours (0–24)')
+    .option('--exercise <freq>', 'exercise frequency: none | 1-2 | 3-4 | 5+')
+    .option('--diet <type>', 'diet: omnivore | vegetarian | vegan | keto | paleo | mediterranean | other')
+    .option('--stress <level>', 'stress level: low | moderate | high | very-high')
+    .option('--tracks-bloodwork', 'mark that you track bloodwork')
     .option('--json', 'output raw JSON')
     .action(async (opts: Record<string, unknown>) => {
       const { runProfileSet } = await import('./profile');
       await runProfileSet(opts, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+  profile
+    .command('clear')
+    .description('Delete your health profile')
+    .action(async () => {
+      const { runProfileClear } = await import('./profile');
+      await runProfileClear();
     });
 
   // API-key management (anonymous/manual keys, distinct from account login).
