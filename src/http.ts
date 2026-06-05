@@ -30,6 +30,13 @@ export interface ApiGetOptions {
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 
+/** Per-request timeout in ms. Override with SUPSTACK_TIMEOUT (seconds) / `--timeout`. */
+function defaultTimeoutMs(): number {
+  const raw = process.env.SUPSTACK_TIMEOUT;
+  const secs = raw ? Number(raw) : NaN;
+  return Number.isFinite(secs) && secs > 0 ? secs * 1000 : DEFAULT_TIMEOUT_MS;
+}
+
 const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 /** Exponential backoff, capped, in milliseconds. */
@@ -65,7 +72,7 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
   const baseUrl = opts.baseUrl ?? getBaseUrl();
   const apiKey = opts.apiKey ?? getApiKey();
   const maxRetries = opts.maxRetries ?? 3;
-  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const timeoutMs = opts.timeoutMs ?? defaultTimeoutMs();
 
   const url = new URL(baseUrl + path);
   for (const [key, value] of Object.entries(opts.query ?? {})) {

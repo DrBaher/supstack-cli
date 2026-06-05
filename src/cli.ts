@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import { buildInput } from './args';
 import { cachePath, clearCache } from './cache';
 import type { AnyCapability } from './capability';
+import { completionScript, isShell } from './completion';
 import { saveApiKey } from './config';
 import { DISCLAIMER } from './constants';
 import { ApiError } from './http';
@@ -52,7 +53,9 @@ export function buildProgram(): Command {
     .description('SupStack CLI — evidence-based supplement intelligence')
     .version(VERSION, '-v, --version')
     .option('--json', 'output raw JSON')
-    .option('--no-cache', 'bypass the local response cache');
+    .option('--no-cache', 'bypass the local response cache')
+    .option('--timeout <seconds>', 'per-request timeout in seconds (default 20)')
+    .option('-q, --quiet', 'suppress the update-available notice');
 
   for (const cap of capabilities) {
     const signature = cap.cli.args ? `${cap.cli.command} ${cap.cli.args}` : cap.cli.command;
@@ -63,6 +66,7 @@ export function buildProgram(): Command {
     // Per-command flags so both `supstack --json define x` and `supstack define x --json` work.
     cmd.option('--json', 'output raw JSON');
     cmd.option('--no-cache', 'bypass the local response cache');
+    cmd.option('--timeout <seconds>', 'per-request timeout in seconds (default 20)');
     cmd.action(async (...actionArgs: unknown[]) => {
       const options = actionArgs[actionArgs.length - 2] as Record<string, unknown>;
       const positionals = actionArgs.slice(0, actionArgs.length - 2);
@@ -71,6 +75,9 @@ export function buildProgram(): Command {
       if (options.cache === false || program.opts().cache === false) {
         process.env.SUPSTACK_NO_CACHE = '1';
       }
+      // --timeout <seconds> → SUPSTACK_TIMEOUT, read by the HTTP layer.
+      const timeout = options.timeout ?? program.opts().timeout;
+      if (timeout !== undefined) process.env.SUPSTACK_TIMEOUT = String(timeout);
       try {
         const input = buildInput(cap, positionals, options);
         await runCapability(cap, input, asJson);
@@ -115,6 +122,20 @@ export function buildProgram(): Command {
     .description('Print the cache directory path')
     .action(() => {
       process.stdout.write(`${cachePath()}\n`);
+    });
+
+  // Shell completion script generator (bash | zsh | fish), derived from the registry.
+  program
+    .command('completion [shell]')
+    .description('Print a shell completion script (bash | zsh | fish)')
+    .action((shell?: string) => {
+      const target = shell ?? process.env.SHELL?.split('/').pop() ?? 'bash';
+      if (!isShell(target)) {
+        process.stderr.write(red(`Unsupported shell: ${target}`) + ' (expected bash, zsh, or fish)\n');
+        process.exitCode = 1;
+        return;
+      }
+      process.stdout.write(completionScript(target));
     });
 
   program.addHelpText(
