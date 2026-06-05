@@ -144,21 +144,24 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
 
 // ─── Anonymous instant-token (minted on first read) ──────────────────────
 
-let anonMintAttempted = false;
+const ANON_MINT_COOLDOWN_MS = 60_000;
+let anonMintCooldownUntil = 0;
 
 /**
  * Resolve the X-API-Key to send. If none is configured, mint an anonymous
- * instant-token ONCE per process on the first read and persist it — so repeat
- * runs carry a stable per-key identity (better rate limits + visibility) with
- * zero friction. Best-effort: a mint failure (offline, disabled) falls back to
- * anonymous-by-IP. Skipped under vitest and when SUPSTACK_NO_ANON_TOKEN is set.
+ * instant-token on the first read and persist it — so repeat runs carry a stable
+ * per-key identity (better rate limits + visibility) with zero friction. On
+ * SUCCESS the saved key short-circuits future calls. On FAILURE (offline) we
+ * back off 60s rather than latching forever, so a long-lived `mcp` server that
+ * regains connectivity will mint on a later request. Skipped under vitest and
+ * when SUPSTACK_NO_ANON_TOKEN is set.
  */
 async function resolveApiKey(explicit?: string, fetchImpl?: typeof fetch): Promise<string | undefined> {
   if (explicit) return explicit;
   const existing = getApiKey();
   if (existing) return existing;
-  if (anonMintAttempted || process.env.VITEST || process.env.SUPSTACK_NO_ANON_TOKEN) return undefined;
-  anonMintAttempted = true;
+  if (process.env.VITEST || process.env.SUPSTACK_NO_ANON_TOKEN) return undefined;
+  if (Date.now() < anonMintCooldownUntil) return undefined; // backing off after a recent failure
   try {
     const res = await apiPost<{ key?: string }>('/auth/anon-token', undefined, { fetchImpl });
     if (res?.key) {
@@ -168,6 +171,7 @@ async function resolveApiKey(explicit?: string, fetchImpl?: typeof fetch): Promi
   } catch {
     // Offline / endpoint unavailable — proceed anonymously (by IP).
   }
+  anonMintCooldownUntil = Date.now() + ANON_MINT_COOLDOWN_MS;
   return undefined;
 }
 

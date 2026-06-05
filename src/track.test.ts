@@ -5,10 +5,27 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotLoggedInError } from './cloud-stack';
-import { getAdherence, localToday, logIntake } from './track';
+import { getAdherence, localToday, logIntake, runAdherence, runTrackLog } from './track';
 
 function jsonRes(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as unknown as Response;
+}
+
+/** Capture stdout written during an async run* call. */
+async function captureStdout(fn: () => Promise<void>): Promise<string> {
+  const lines: string[] = [];
+  const orig = process.stdout.write.bind(process.stdout);
+
+  process.stdout.write = ((s: string): boolean => {
+    lines.push(String(s));
+    return true;
+  }) as any;
+  try {
+    await fn();
+  } finally {
+    process.stdout.write = orig;
+  }
+  return lines.join('');
 }
 
 let home: string;
@@ -77,6 +94,52 @@ describe('track', () => {
     expect(out.rate).toBe(0.86);
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(String(url)).toContain('/me/adherence?days=7');
+    expect(String(url)).toContain('&today='); // passes local date for TZ alignment
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer sct_live_x');
+  });
+
+  it('runAdherence renders overall %, streak, and per-supplement', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonRes({
+          data: {
+            days: 30,
+            scheduledDoses: 60,
+            takenDoses: 45,
+            rate: 0.75,
+            streak: 4,
+            stackSize: 2,
+            perSupplement: [
+              { slug: 'caffeine', takenDays: 12, rate: 0.4 },
+              { slug: 'magnesium', takenDays: 27, rate: 0.9 },
+            ],
+          },
+        }),
+      ),
+    );
+    const out = await captureStdout(() => runAdherence(30, false));
+    expect(out).toContain('Adherence');
+    expect(out).toContain('75%'); // overall
+    expect(out).toContain('45/60'); // doses
+    expect(out).toContain('4 days'); // streak
+    expect(out).toContain('caffeine'); // worst-first
+    vi.unstubAllGlobals();
+  });
+
+  it('runTrackLog prints a confirmation', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonRes({ data: { date: '2026-06-05', status: 'taken', logged: 1, supplements: ['magnesium'] } }),
+        ),
+    );
+    const out = await captureStdout(() => runTrackLog('magnesium', {}, false));
+    expect(out).toContain('Logged magnesium for 2026-06-05');
+    vi.unstubAllGlobals();
   });
 });

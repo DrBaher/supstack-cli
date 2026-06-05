@@ -5,10 +5,23 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotLoggedInError } from './cloud-stack';
-import { clearProfile, getProfile, patchFromOptions, setProfile } from './profile';
+import { clearProfile, getProfile, patchFromOptions, runProfileShow, setProfile } from './profile';
 
 function jsonRes(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as unknown as Response;
+}
+
+async function captureStdout(fn: () => Promise<void>): Promise<string> {
+  const lines: string[] = [];
+  const orig = process.stdout.write.bind(process.stdout);
+
+  process.stdout.write = ((s: string): boolean => (lines.push(String(s)), true)) as any;
+  try {
+    await fn();
+  } finally {
+    process.stdout.write = orig;
+  }
+  return lines.join('');
 }
 
 const sampleProfile = (age: number): unknown => ({
@@ -142,5 +155,45 @@ describe('profile wire helpers', () => {
     expect(String(url)).toContain('/me/profile');
     expect(init.method).toBe('DELETE');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer sct_live_x');
+  });
+
+  it('runProfileShow renders the profile (and a no-profile hint)', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    // Null profile → hint.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonRes({ data: null })));
+    expect(await captureStdout(() => runProfileShow(false))).toContain('No profile set yet');
+    vi.unstubAllGlobals();
+    // Populated.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonRes({
+          data: {
+            age: 44,
+            biologicalSex: 'male',
+            weight: 83,
+            weightUnit: 'kg',
+            isPregnant: false,
+            isNursing: false,
+            healthConditions: [],
+            medications: [],
+            primaryGoals: ['build-strength'],
+            currentSupplements: [],
+            sleepHours: null,
+            exerciseFrequency: null,
+            dietType: null,
+            stressLevel: null,
+            tracksBloodwork: false,
+            profileCompletedAt: null,
+          },
+        }),
+      ),
+    );
+    const out = await captureStdout(() => runProfileShow(false));
+    expect(out).toContain('Your profile');
+    expect(out).toContain('44');
+    expect(out).toContain('83 kg');
+    expect(out).toContain('build-strength');
+    vi.unstubAllGlobals();
   });
 });

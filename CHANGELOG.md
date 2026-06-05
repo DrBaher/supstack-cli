@@ -4,6 +4,26 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] — Audit-deferred hardening
+
+### Fixed
+
+- **`track adherence` timezone alignment** — the CLI now sends its local calendar
+  date (`&today=YYYY-MM-DD`) so the server's adherence window and streak line up
+  with the local dates `track log` writes, avoiding a TZ-boundary off-by-one.
+- **Adherence bar no longer throws** on a rate slightly above 1.0 (e.g. a
+  post-backfill `takenDays` briefly exceeding the window): the filled-cell count
+  is clamped to `[0,12]` so `'░'.repeat()` can't get a negative count.
+- **Anonymous instant-token mint backs off instead of latching** — a failed mint
+  (offline) now retries after a 60s cooldown rather than disabling anon-token
+  minting for the life of the process, so a long-lived `mcp` server that regains
+  connectivity mints on a later request.
+
+### Internal
+
+- Added formatter tests (`runAdherence`, `runTrackLog`, `runProfileShow`,
+  `runExperimentsList`) covering empty/populated/null rendering paths.
+
 ## [0.8.1] — Error-handling fix
 
 ### Fixed
