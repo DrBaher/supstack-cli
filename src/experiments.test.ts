@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotLoggedInError } from './cloud-stack';
-import { getExperiment, getExperiments } from './experiments';
+import { getExperiment, getExperiments, resolveExperimentId } from './experiments';
 
 function jsonRes(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as unknown as Response;
@@ -84,5 +84,51 @@ describe('experiments', () => {
     expect(out.verdict).toBe('clear-win');
     const [url] = fetchImpl.mock.calls[0] as [string];
     expect(String(url)).toContain('/me/experiments/exp-1');
+  });
+
+  it('resolveExperimentId passes a full uuid through without a network call', async () => {
+    const uuid = '8b03297e-0000-4000-8000-000000000000';
+    await expect(resolveExperimentId(uuid)).resolves.toBe(uuid);
+  });
+
+  it('resolveExperimentId resolves a short prefix via the list', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    const full = '8b03297e-1111-4111-8111-111111111111';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonRes({
+          data: [
+            {
+              id: full,
+              supplement: { slug: 'magnesium', name: 'Magnesium' },
+              goal: { id: 'g', name: 'G' },
+              status: 'completed',
+              verdict: null,
+              verdictSummary: null,
+              progress: { completed: 4, expected: 4 },
+              startedAt: null,
+              completedAt: null,
+              nextCheckInDate: null,
+            },
+            {
+              id: 'd3d0de39-2222-4222-8222-222222222222',
+              supplement: { slug: 'l-theanine', name: 'L-Theanine' },
+              goal: { id: 'g', name: 'G' },
+              status: 'completed',
+              verdict: null,
+              verdictSummary: null,
+              progress: { completed: 4, expected: 4 },
+              startedAt: null,
+              completedAt: null,
+              nextCheckInDate: null,
+            },
+          ],
+        }),
+      ),
+    );
+    await expect(resolveExperimentId('8b03297e')).resolves.toBe(full);
+    await expect(resolveExperimentId('zzzz')).rejects.toThrow(/No experiment matching/);
+    vi.unstubAllGlobals();
   });
 });

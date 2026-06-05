@@ -81,6 +81,24 @@ function verdictBadge(verdict: string | null): string {
 const shortId = (id: string): string => id.slice(0, 8);
 const date = (iso: string | null): string => (iso ? iso.slice(0, 10) : '');
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolve an id or short prefix (as shown by `experiments list`) to a full uuid,
+ * git-style. Full uuids pass through; a prefix is matched against the list.
+ */
+export async function resolveExperimentId(idOrPrefix: string): Promise<string> {
+  if (UUID_RE.test(idOrPrefix)) return idOrPrefix;
+  const matches = (await getExperiments()).filter((e) =>
+    e.id.toLowerCase().startsWith(idOrPrefix.toLowerCase()),
+  );
+  if (matches.length === 0)
+    throw new Error(`No experiment matching "${idOrPrefix}". Run \`supstack experiments list\`.`);
+  if (matches.length > 1)
+    throw new Error(`"${idOrPrefix}" is ambiguous (${matches.length} matches). Use more characters.`);
+  return matches[0]!.id;
+}
+
 /** `supstack experiments list` */
 export async function runExperimentsList(status: string | undefined, asJson: boolean): Promise<void> {
   const experiments = await getExperiments(status);
@@ -103,8 +121,9 @@ export async function runExperimentsList(status: string | undefined, asJson: boo
   out(dim('Show one with `supstack experiments show <id>`.'));
 }
 
-/** `supstack experiments show <id>` */
-export async function runExperimentShow(id: string, asJson: boolean): Promise<void> {
+/** `supstack experiments show <id>` (accepts the short id from `list`) */
+export async function runExperimentShow(idOrPrefix: string, asJson: boolean): Promise<void> {
+  const id = await resolveExperimentId(idOrPrefix);
   const e = await getExperiment(id);
   if (asJson) {
     out(JSON.stringify(e, null, 2));
