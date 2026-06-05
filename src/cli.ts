@@ -123,7 +123,32 @@ export function buildProgram(): Command {
       await runMcpServer();
     });
 
-  // Reserve the auth grammar now (Phase 2 uses it for personalized, authenticated calls).
+  // Account auth (Phase 2). auth.ts is lazy-imported so read-only commands don't
+  // pay for it at startup.
+  program
+    .command('login')
+    .description('Sign in to your SupStack account (device authorization)')
+    .action(async () => {
+      const { runLogin } = await import('./auth');
+      await runLogin();
+    });
+  program
+    .command('logout')
+    .description("Sign out and revoke this device's token")
+    .action(async () => {
+      const { runLogout } = await import('./auth');
+      await runLogout();
+    });
+  program
+    .command('whoami')
+    .description('Show the signed-in account')
+    .option('--json', 'output raw JSON')
+    .action(async (opts: Record<string, unknown>) => {
+      const { runWhoami } = await import('./auth');
+      await runWhoami(Boolean(opts.json) || Boolean(program.opts().json));
+    });
+
+  // API-key management (anonymous/manual keys, distinct from account login).
   const auth = program.command('auth').description('Manage API credentials');
   auth
     .command('set-key <key>')
