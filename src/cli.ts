@@ -12,7 +12,32 @@ import { dim, red } from './output';
 import { capabilities } from './registry';
 import { VERSION } from './version';
 
-function printError(err: unknown): void {
+/**
+ * Build a machine-readable error object for `--json` mode. Mirrors the human
+ * branches in printError so scripts/agents can parse failures instead of
+ * scraping prose. Emitted to stderr (stdout stays the data channel).
+ */
+export function errorToJson(err: unknown): { error: Record<string, unknown> } {
+  if (err instanceof ZodError) {
+    return {
+      error: {
+        type: 'invalid_input',
+        message: 'Invalid input',
+        issues: err.issues.map((i) => ({ path: i.path.join('.') || '(input)', message: i.message })),
+      },
+    };
+  }
+  if (err instanceof ApiError) {
+    return { error: { type: 'api_error', status: err.status, message: err.message } };
+  }
+  return { error: { type: 'error', message: (err as Error).message } };
+}
+
+function printError(err: unknown, asJson = false): void {
+  if (asJson) {
+    process.stderr.write(JSON.stringify(errorToJson(err), null, 2) + '\n');
+    return;
+  }
   if (err instanceof ZodError) {
     process.stderr.write(red('Invalid input:') + '\n');
     for (const issue of err.issues) {
@@ -82,7 +107,7 @@ export function buildProgram(): Command {
         const input = buildInput(cap, positionals, options);
         await runCapability(cap, input, asJson);
       } catch (err) {
-        printError(err);
+        printError(err, asJson);
         process.exitCode = 1;
       }
     });

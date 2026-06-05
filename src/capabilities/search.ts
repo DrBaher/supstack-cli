@@ -126,7 +126,7 @@ export const search = defineCapability({
         .map((h) => {
           const meta: string[] = [dim(h.type)];
           if (h.evidenceScore !== undefined) {
-            meta.push(`evidence ${h.evidenceScore}${h.evidenceLevel ? ` (${h.evidenceLevel})` : ''}`);
+            meta.push(`evidence ${h.evidenceScore}/10${h.evidenceLevel ? ` (${h.evidenceLevel})` : ''}`);
           }
           if (h.safety) meta.push(`safety: ${h.safety}`);
           if (h.matchScore !== undefined) meta.push(dim(`match ${h.matchScore}`));

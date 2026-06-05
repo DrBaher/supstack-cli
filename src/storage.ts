@@ -8,6 +8,16 @@ interface StoredStack {
   supplements: string[];
 }
 
+/**
+ * Normalize a slug to the form the API accepts. SupStack slugs are
+ * lowercase-kebab; the API 400s on any other case (e.g. `Magnesium`). Without
+ * this, `stack add Magnesium` would store an unusable slug that `export` then
+ * silently drops. Also dedupes case variants (`Magnesium` ≡ `magnesium`).
+ */
+export function normalizeSlug(slug: string): string {
+  return slug.trim().toLowerCase();
+}
+
 /** Read the local stack (list of supplement slugs). Returns [] if none. */
 export function readStack(): string[] {
   try {
@@ -24,17 +34,19 @@ function writeStack(slugs: string[]): void {
   writeFileSync(homePath(STACK_FILE), JSON.stringify({ supplements: unique }, null, 2) + '\n');
 }
 
-/** Add a slug (idempotent). Returns the resulting stack. */
+/** Add a slug (idempotent, normalized). Returns the resulting stack. */
 export function addToStack(slug: string): string[] {
+  const normalized = normalizeSlug(slug);
   const stack = readStack();
-  if (!stack.includes(slug)) stack.push(slug);
+  if (!stack.includes(normalized)) stack.push(normalized);
   writeStack(stack);
   return stack;
 }
 
-/** Remove a slug. Returns the resulting stack. */
+/** Remove a slug (matched after normalization). Returns the resulting stack. */
 export function removeFromStack(slug: string): string[] {
-  const next = readStack().filter((s) => s !== slug);
+  const normalized = normalizeSlug(slug);
+  const next = readStack().filter((s) => s !== normalized);
   writeStack(next);
   return next;
 }
