@@ -15,7 +15,12 @@ function configPath(): string {
 }
 
 interface CliConfig {
+  /** Manually-set API key (`supstack auth set-key`). */
   apiKey?: string;
+  /** Auto-minted anonymous instant-token (per-key rate limiting, no account). */
+  anonKey?: string;
+  /** User CLI token from `supstack login` (sent as `Authorization: Bearer`). */
+  token?: string;
 }
 
 function readConfig(): CliConfig {
@@ -26,20 +31,52 @@ function readConfig(): CliConfig {
   }
 }
 
-/**
- * Resolve the API key. Precedence: env var → ~/.supstack/config.json.
- * The API is soft-gated (anonymous calls are allowed at 60/min per IP), so a
- * key is OPTIONAL today — but the client sends it whenever present so the same
- * code path works once per-key rate limits / Phase 2 auth land.
- */
-export function getApiKey(): string | undefined {
-  return process.env.SUPSTACK_API_KEY ?? readConfig().apiKey;
-}
-
-/** Persist an API key to ~/.supstack/config.json (used by `supstack auth set-key`). */
-export function saveApiKey(apiKey: string): string {
+/** Merge a partial config and persist it (0600). */
+function writeConfig(patch: Partial<CliConfig>): string {
   ensureDir(supstackHome());
-  const next: CliConfig = { ...readConfig(), apiKey };
+  const next: CliConfig = { ...readConfig(), ...patch };
+  // Drop keys explicitly set to undefined so they don't linger as `null`.
+  for (const k of Object.keys(next) as (keyof CliConfig)[]) {
+    if (next[k] === undefined) delete next[k];
+  }
   writeFileSync(configPath(), JSON.stringify(next, null, 2) + '\n', { mode: 0o600 });
   return configPath();
+}
+
+/**
+ * The effective API key sent as `X-API-Key` on public reads.
+ * Precedence: env var → manually-set key → auto-minted anonymous token.
+ */
+export function getApiKey(): string | undefined {
+  return process.env.SUPSTACK_API_KEY ?? readConfig().apiKey ?? readConfig().anonKey;
+}
+
+/** Persist a manually-set API key (used by `supstack auth set-key`). */
+export function saveApiKey(apiKey: string): string {
+  return writeConfig({ apiKey });
+}
+
+/** The auto-minted anonymous instant-token, if one has been issued. */
+export function getAnonKey(): string | undefined {
+  return readConfig().anonKey;
+}
+
+/** Persist the auto-minted anonymous instant-token. */
+export function saveAnonKey(anonKey: string): string {
+  return writeConfig({ anonKey });
+}
+
+/** The user CLI token from `supstack login`, if logged in. */
+export function getToken(): string | undefined {
+  return process.env.SUPSTACK_TOKEN ?? readConfig().token;
+}
+
+/** Persist the user CLI token after a successful login. */
+export function saveToken(token: string): string {
+  return writeConfig({ token });
+}
+
+/** Clear the user CLI token (logout). */
+export function clearToken(): string {
+  return writeConfig({ token: undefined });
 }

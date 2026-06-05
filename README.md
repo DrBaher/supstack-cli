@@ -5,8 +5,8 @@ Evidence-based supplement intelligence in your terminal — and an MCP server fo
 A thin client over the public [SupStack API](https://supstack.me/api). Read-only,
 no account required. One capability registry powers both the CLI and the MCP server.
 
-> **Status: Phase 1, published.** All commands below work, plus an MCP server.
-> Install with `npm install -g @supstack/cli`.
+> **Status: Phase 2 (accounts) in progress.** All read commands below work, plus
+> an MCP server and `login`/`whoami`. Install with `npm install -g @supstack/cli`.
 
 ## Install
 
@@ -30,6 +30,19 @@ supstack define bioavailability              # glossary lookup
 supstack <command> --json                    # machine-readable output on any command
 supstack --help
 ```
+
+### Account (Phase 2)
+
+```bash
+supstack login          # sign in via device-code flow (opens the browser to confirm)
+supstack whoami         # show the signed-in account
+supstack logout         # sign out and revoke this device's token
+```
+
+`login` shows a one-time code, opens `https://supstack.me/activate`, and finishes
+once you approve in the browser. The token lives in `~/.supstack/config.json`
+(`0600`). Reads work fully anonymously — an account unlocks personalized features
+(cloud stack sync, profile) as they land.
 
 ### As an MCP server
 
@@ -75,6 +88,8 @@ claude mcp add supstack -- supstack mcp
 | `SUPSTACK_NO_CACHE` | — | Set to disable the response cache |
 | `SUPSTACK_TIMEOUT` | `20` | Per-request timeout in seconds (or use `--timeout`) |
 | `SUPSTACK_HOME` | `~/.supstack` | Directory for config, stack, and cache |
+| `SUPSTACK_TOKEN` | — | Override the stored account token (from `supstack login`) |
+| `SUPSTACK_NO_ANON_TOKEN` | — | Disable auto-minting of the anonymous instant-token |
 | `SUPSTACK_NO_UPDATE_CHECK` | — | Disable the "update available" notice (also honours `NO_UPDATE_NOTIFIER`) |
 | `NO_COLOR` | — | Disable ANSI colour |
 

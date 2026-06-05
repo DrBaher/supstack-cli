@@ -1,5 +1,5 @@
 import { cacheEnabled, cacheIdentityFor, cacheKeyFor, cacheTtlMs, readCache, writeCache } from './cache';
-import { getApiKey, getBaseUrl } from './config';
+import { getApiKey, getBaseUrl, saveAnonKey } from './config';
 import { VERSION } from './version';
 
 export class ApiError extends Error {
@@ -70,7 +70,7 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
   const sleep = opts.sleepImpl ?? defaultSleep;
   const baseUrl = opts.baseUrl ?? getBaseUrl();
-  const apiKey = opts.apiKey ?? getApiKey();
+  const apiKey = await resolveApiKey(opts.apiKey, opts.fetchImpl);
   const maxRetries = opts.maxRetries ?? 3;
   const timeoutMs = opts.timeoutMs ?? defaultTimeoutMs();
 
@@ -140,4 +140,144 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
     if (cacheKey) writeCache(cacheKey, url.toString(), json, Date.now());
     return json as T;
   }
+}
+
+// ─── Anonymous instant-token (minted on first read) ──────────────────────
+
+let anonMintAttempted = false;
+
+/**
+ * Resolve the X-API-Key to send. If none is configured, mint an anonymous
+ * instant-token ONCE per process on the first read and persist it — so repeat
+ * runs carry a stable per-key identity (better rate limits + visibility) with
+ * zero friction. Best-effort: a mint failure (offline, disabled) falls back to
+ * anonymous-by-IP. Skipped under vitest and when SUPSTACK_NO_ANON_TOKEN is set.
+ */
+async function resolveApiKey(explicit?: string, fetchImpl?: typeof fetch): Promise<string | undefined> {
+  if (explicit) return explicit;
+  const existing = getApiKey();
+  if (existing) return existing;
+  if (anonMintAttempted || process.env.VITEST || process.env.SUPSTACK_NO_ANON_TOKEN) return undefined;
+  anonMintAttempted = true;
+  try {
+    const res = await apiPost<{ key?: string }>('/auth/anon-token', undefined, { fetchImpl });
+    if (res?.key) {
+      saveAnonKey(res.key);
+      return res.key;
+    }
+  } catch {
+    // Offline / endpoint unavailable — proceed anonymously (by IP).
+  }
+  return undefined;
+}
+
+// ─── POST helper (auth endpoints) ────────────────────────────────────────
+
+export interface ApiPostOptions {
+  /** `Authorization: Bearer <token>` for authenticated endpoints. */
+  bearer?: string;
+  fetchImpl?: typeof fetch;
+  baseUrl?: string;
+  timeoutMs?: number;
+}
+
+/**
+ * POST a JSON endpoint. Unlike apiGet this does NOT cache or retry — the auth
+ * endpoints (device/start, device/token, anon-token, logout) are stateful, so a
+ * blind retry could double-issue. A single attempt under a timeout.
+ */
+export async function apiPost<T = unknown>(
+  path: string,
+  body?: unknown,
+  opts: ApiPostOptions = {},
+): Promise<T> {
+  const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+  const baseUrl = opts.baseUrl ?? getBaseUrl();
+  const timeoutMs = opts.timeoutMs ?? defaultTimeoutMs();
+
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'User-Agent': `@supstack/cli/${VERSION}`,
+  };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (opts.bearer) headers.Authorization = `Bearer ${opts.bearer}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetchImpl(baseUrl + path, {
+      method: 'POST',
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    throw new ApiError(
+      0,
+      controller.signal.aborted
+        ? `Request timed out after ${timeoutMs}ms`
+        : `Network error: ${(err as Error).message}`,
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const json: unknown = await res.json().catch(() => undefined);
+  if (!res.ok) {
+    const message =
+      json && typeof json === 'object' && ('message' in json || 'error' in json)
+        ? String(
+            (json as { message?: unknown; error?: unknown }).message ?? (json as { error?: unknown }).error,
+          )
+        : `Request failed (HTTP ${res.status})`;
+    throw new ApiError(res.status, message, json);
+  }
+  return json as T;
+}
+
+/** GET an authenticated endpoint with a Bearer token (no cache). */
+export async function apiGetAuthed<T = unknown>(
+  path: string,
+  bearer: string,
+  opts: { fetchImpl?: typeof fetch; baseUrl?: string; timeoutMs?: number } = {},
+): Promise<T> {
+  const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+  const baseUrl = opts.baseUrl ?? getBaseUrl();
+  const timeoutMs = opts.timeoutMs ?? defaultTimeoutMs();
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetchImpl(baseUrl + path, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': `@supstack/cli/${VERSION}`,
+        Authorization: `Bearer ${bearer}`,
+      },
+      signal: controller.signal,
+    });
+  } catch (err) {
+    throw new ApiError(
+      0,
+      controller.signal.aborted
+        ? `Request timed out after ${timeoutMs}ms`
+        : `Network error: ${(err as Error).message}`,
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const json: unknown = await res.json().catch(() => undefined);
+  if (!res.ok) {
+    const message =
+      json && typeof json === 'object' && ('message' in json || 'error' in json)
+        ? String(
+            (json as { message?: unknown; error?: unknown }).message ?? (json as { error?: unknown }).error,
+          )
+        : `Request failed (HTTP ${res.status})`;
+    throw new ApiError(res.status, message, json);
+  }
+  return json as T;
 }
