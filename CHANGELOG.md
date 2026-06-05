@@ -4,6 +4,15 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — Personalized recommendations (Phase 2)
+
+### Added
+
+- **`supstack recommend`** — personalized supplement recommendations computed
+  from your **saved goals + cloud stack** (no arguments needed; requires
+  `supstack login`). Shows a composite score, the driving goal, evidence, and
+  any safety/interaction warnings. `-n/--limit` and `--json` supported.
+
 ## [0.5.0] — Profile (Phase 2, Increment C)
 
 ### Added
@@ -118,6 +127,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`--pathway`), `stack` (local), `export`, `define` — plus an stdio MCP server
   exposing the same eight as tools, and `auth` / `cache` maintenance commands.
 
+[0.6.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.6.0
 [0.5.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.5.0
 [0.4.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.4.0
 [0.3.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.3.0

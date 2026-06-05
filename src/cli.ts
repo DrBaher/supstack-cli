@@ -148,6 +148,18 @@ export function buildProgram(): Command {
       await runWhoami(Boolean(opts.json) || Boolean(program.opts().json));
     });
 
+  // Personalized recommendations from the user's saved goals + cloud stack.
+  program
+    .command('recommend')
+    .description('Personalized supplement recommendations (requires login)')
+    .option('-n, --limit <n>', 'max results (default 10)')
+    .option('--json', 'output raw JSON')
+    .action(async (opts: Record<string, unknown>) => {
+      const { runRecommend } = await import('./recommend');
+      const limit = Math.min(50, Math.max(1, Number(opts.limit) || 10));
+      await runRecommend(limit, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+
   // Health profile (requires login). `profile` shows; `profile set` updates.
   const profile = program
     .command('profile')

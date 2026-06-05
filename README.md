@@ -53,6 +53,7 @@ supstack stack sync     # additive merge of both; preserves existing cloud metad
 
 supstack profile                              # view your health profile
 supstack profile set --age 35 --sex male --weight 80 --weight-unit kg
+supstack recommend                            # personalized picks from your goals + stack
 ```
 
 ### As an MCP server
