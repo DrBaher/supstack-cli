@@ -39,9 +39,13 @@ export async function logIntake(input: LogInput, fetchImpl?: typeof fetch): Prom
 }
 
 export async function getAdherence(days: number, fetchImpl?: typeof fetch): Promise<Adherence> {
-  const res = await apiGetAuthed<{ data: Adherence }>(`/me/adherence?days=${days}`, requireToken(), {
-    fetchImpl,
-  });
+  // Pass our LOCAL today so the server's window + streak align with the local
+  // dates `track log` writes (avoids a TZ-boundary off-by-one).
+  const res = await apiGetAuthed<{ data: Adherence }>(
+    `/me/adherence?days=${days}&today=${encodeURIComponent(localToday())}`,
+    requireToken(),
+    { fetchImpl },
+  );
   return res.data;
 }
 
@@ -55,7 +59,9 @@ function out(line = ''): void {
 }
 
 function bar(rate: number): string {
-  const filled = Math.round(rate * 12);
+  // Clamp to [0,12]: a rate slightly >1 (e.g. takenDays briefly exceeding the
+  // window after a backfill) must not feed `.repeat()` a negative count.
+  const filled = Math.max(0, Math.min(12, Math.round(rate * 12)));
   return '█'.repeat(filled) + dim('░'.repeat(12 - filled));
 }
 

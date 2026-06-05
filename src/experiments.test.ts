@@ -5,10 +5,23 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotLoggedInError } from './cloud-stack';
-import { getExperiment, getExperiments, resolveExperimentId } from './experiments';
+import { getExperiment, getExperiments, resolveExperimentId, runExperimentsList } from './experiments';
 
 function jsonRes(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as unknown as Response;
+}
+
+async function captureStdout(fn: () => Promise<void>): Promise<string> {
+  const lines: string[] = [];
+  const orig = process.stdout.write.bind(process.stdout);
+
+  process.stdout.write = ((s: string): boolean => (lines.push(String(s)), true)) as any;
+  try {
+    await fn();
+  } finally {
+    process.stdout.write = orig;
+  }
+  return lines.join('');
 }
 
 let home: string;
@@ -155,6 +168,43 @@ describe('experiments', () => {
       ),
     );
     await expect(resolveExperimentId('abcd')).rejects.toThrow(/ambiguous/);
+    vi.unstubAllGlobals();
+  });
+
+  it('runExperimentsList renders rows (and an empty state)', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    // Empty.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonRes({ data: [] })));
+    expect(await captureStdout(() => runExperimentsList(undefined, false))).toContain('No experiments yet');
+    vi.unstubAllGlobals();
+    // Populated.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonRes({
+          data: [
+            {
+              id: '8b03297e-1111-4111-8111-111111111111',
+              supplement: { slug: 'magnesium', name: 'Magnesium' },
+              goal: { id: 'deep-sleep', name: 'Deep Sleep' },
+              status: 'completed',
+              verdict: 'clear-win',
+              verdictSummary: null,
+              progress: { completed: 4, expected: 4 },
+              startedAt: null,
+              completedAt: null,
+              nextCheckInDate: null,
+            },
+          ],
+        }),
+      ),
+    );
+    const out = await captureStdout(() => runExperimentsList(undefined, false));
+    expect(out).toContain('Magnesium');
+    expect(out).toContain('Deep Sleep');
+    expect(out).toContain('4/4');
+    expect(out).toContain('clear-win');
+    expect(out).toContain('8b03297e'); // short id
     vi.unstubAllGlobals();
   });
 });
