@@ -73,17 +73,32 @@ claude mcp add supstack -- supstack mcp
 | `SUPSTACK_API_KEY` | — | Optional API key (anonymous works at 60/min/IP) |
 | `SUPSTACK_CACHE_TTL` | `3600` | Response cache TTL in seconds |
 | `SUPSTACK_NO_CACHE` | — | Set to disable the response cache |
+| `SUPSTACK_TIMEOUT` | `20` | Per-request timeout in seconds (or use `--timeout`) |
 | `SUPSTACK_HOME` | `~/.supstack` | Directory for config, stack, and cache |
+| `SUPSTACK_NO_UPDATE_CHECK` | — | Disable the "update available" notice (also honours `NO_UPDATE_NOTIFIER`) |
 | `NO_COLOR` | — | Disable ANSI colour |
 
-`supstack auth set-key <key>` persists a key to `~/.supstack/config.json`.
+Global flags available on any command: `--json`, `--no-cache`, `--timeout <seconds>`, `-q, --quiet`.
+
+`supstack auth set-key <key>` persists a key to `~/.supstack/config.json` (written `0600`).
 
 ### Response cache
 
 Read-only API responses are cached under `~/.supstack/cache/` (1-hour TTL by
 default) to keep repeat lookups well under the 60/min rate limit. Bypass it per
 command with `--no-cache`, or manage it with `supstack cache clear` /
-`supstack cache path`.
+`supstack cache path`. The cache is bounded (oldest entries pruned past a cap).
+
+### Shell completion
+
+Generate a completion script for your shell (the command list is derived from
+the registry, so it never drifts):
+
+```bash
+supstack completion bash >> ~/.bashrc
+supstack completion zsh  > "${fpath[1]}/_supstack"
+supstack completion fish > ~/.config/fish/completions/supstack.fish
+```
 
 ## Develop
 
