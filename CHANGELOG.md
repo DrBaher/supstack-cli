@@ -4,6 +4,26 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — Accounts (Phase 2, Increment A)
+
+### Added
+
+- **`supstack login`** — sign in to your SupStack account via a device-code flow
+  (gh-style): the CLI shows a one-time code, opens the browser to `/activate`,
+  and finishes automatically once you approve. The token is stored in
+  `~/.supstack/config.json` (`0600`) and sent as `Authorization: Bearer`.
+- **`supstack logout`** — revoke this device's token server-side and clear it.
+- **`supstack whoami`** — show the signed-in account (`--json` supported).
+- **Anonymous instant-token** — on the first read with no key configured, the
+  CLI mints an anonymous token and persists it, so reads carry a stable per-key
+  identity (better rate limits) with zero friction. Opt out with
+  `SUPSTACK_NO_UPDATE_CHECK`'s sibling `SUPSTACK_NO_ANON_TOKEN`.
+
+### Configuration
+
+- `SUPSTACK_TOKEN` — override the stored account token.
+- `SUPSTACK_NO_ANON_TOKEN` — disable auto-minting of the anonymous token.
+
 ## [0.2.1] — Polish
 
 ### Fixed
@@ -72,6 +92,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`--pathway`), `stack` (local), `export`, `define` — plus an stdio MCP server
   exposing the same eight as tools, and `auth` / `cache` maintenance commands.
 
+[0.3.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.3.0
 [0.2.1]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.2.1
 [0.2.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.2.0
 [0.1.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.1.0
