@@ -4,6 +4,18 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] — Error-handling fix
+
+### Fixed
+
+- Account commands (login/logout/whoami/profile/recommend/experiments/track) now
+  route errors through the shared formatter: a clean message + the 401 "run
+  supstack login" hint, and — importantly — **machine-readable `{ error }` output
+  in `--json` mode** (previously these 7 commands printed a bare line on error,
+  bypassing the structured-error contract).
+- `experiments show --json` now wraps its object as `{ experiment }` (consistent
+  with `experiments list`).
+
 ## [0.8.0] — Adherence tracking (Phase 2)
 
 ### Added
@@ -146,6 +158,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`--pathway`), `stack` (local), `export`, `define` — plus an stdio MCP server
   exposing the same eight as tools, and `auth` / `cache` maintenance commands.
 
+[0.8.1]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.8.1
 [0.8.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.8.0
 [0.7.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.7.0
 [0.6.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.6.0

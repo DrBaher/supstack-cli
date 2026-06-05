@@ -131,4 +131,30 @@ describe('experiments', () => {
     await expect(resolveExperimentId('zzzz')).rejects.toThrow(/No experiment matching/);
     vi.unstubAllGlobals();
   });
+
+  it('resolveExperimentId rejects an ambiguous prefix', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    const item = (id: string): unknown => ({
+      id,
+      supplement: { slug: 's', name: 'S' },
+      goal: { id: 'g', name: 'G' },
+      status: 'completed',
+      verdict: null,
+      verdictSummary: null,
+      progress: { completed: 1, expected: 1 },
+      startedAt: null,
+      completedAt: null,
+      nextCheckInDate: null,
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        jsonRes({
+          data: [item('abcd1111-0000-4000-8000-000000000000'), item('abcd2222-0000-4000-8000-000000000000')],
+        }),
+      ),
+    );
+    await expect(resolveExperimentId('abcd')).rejects.toThrow(/ambiguous/);
+    vi.unstubAllGlobals();
+  });
 });

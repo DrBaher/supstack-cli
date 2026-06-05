@@ -80,6 +80,40 @@ describe('stack sync (capability)', () => {
     expect(pushedItems.find((i) => i.slug === 'glycine')?.dosage).toBe('3g');
   });
 
+  it('push makes cloud membership match local, keeping metadata for kept slugs', async () => {
+    addToStack('magnesium'); // local-only (new)
+    addToStack('glycine'); // also in cloud (with metadata)
+    // Cloud has glycine (metadata) + l-theanine (which is NOT in local → must drop).
+    const cloudGet = {
+      data: {
+        stackId: 's1',
+        name: 'My Stack',
+        supplements: [
+          { slug: 'glycine', dosage: '3g', timing: 'Evening', notes: null, brandName: null, position: 0 },
+          { slug: 'l-theanine', dosage: '200mg', timing: null, notes: null, brandName: null, position: 1 },
+        ],
+      },
+    };
+    let pushedItems: { slug: string; dosage?: string | null }[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          pushedItems = JSON.parse(String(init.body)).supplements;
+          return jsonRes(cloudResponse(pushedItems.map((i) => i.slug)));
+        }
+        return jsonRes(cloudGet);
+      }),
+    );
+
+    await stack.handler({ action: 'push' });
+    // membership = local exactly (l-theanine dropped, magnesium added)
+    expect(new Set(pushedItems.map((i) => i.slug))).toEqual(new Set(['magnesium', 'glycine']));
+    // glycine kept its metadata; magnesium added bare
+    expect(pushedItems.find((i) => i.slug === 'glycine')?.dosage).toBe('3g');
+    expect(pushedItems.find((i) => i.slug === 'magnesium')?.dosage).toBeUndefined();
+  });
+
   it('list works offline (no token required)', async () => {
     delete process.env.SUPSTACK_TOKEN;
     addToStack('magnesium');

@@ -126,7 +126,7 @@ export async function runExperimentShow(idOrPrefix: string, asJson: boolean): Pr
   const id = await resolveExperimentId(idOrPrefix);
   const e = await getExperiment(id);
   if (asJson) {
-    out(JSON.stringify(e, null, 2));
+    out(JSON.stringify({ experiment: e }, null, 2));
     return;
   }
   out(`${bold(e.supplement.name)} ${dim('×')} ${e.goal.name}`);

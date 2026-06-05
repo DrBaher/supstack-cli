@@ -33,7 +33,7 @@ export function errorToJson(err: unknown): { error: Record<string, unknown> } {
   return { error: { type: 'error', message: (err as Error).message } };
 }
 
-function printError(err: unknown, asJson = false): void {
+export function printError(err: unknown, asJson = false): void {
   if (asJson) {
     process.stderr.write(JSON.stringify(errorToJson(err), null, 2) + '\n');
     return;
