@@ -55,6 +55,8 @@ supstack profile                              # view your health profile
 supstack profile set --age 35 --sex male --weight 80 --weight-unit kg
 supstack recommend                            # personalized picks from your goals + stack
 supstack experiments list                     # your N-of-1 experiments + verdicts
+supstack track log                            # log today's stack as taken
+supstack track adherence                      # your adherence rate, streak, per-supplement
 ```
 
 ### As an MCP server
