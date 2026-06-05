@@ -1,8 +1,9 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
-import { buildMcpServer } from './mcp';
+import { buildMcpServer, formatToolError } from './mcp';
 import { capabilities } from './registry';
 
 function jsonRes(body: unknown): Response {
@@ -57,5 +58,32 @@ describe('mcp server', () => {
     const res = (await client.callTool({ name: 'supstack_nope', arguments: {} })) as { isError?: boolean };
     expect(res.isError).toBe(true);
     await client.close();
+  });
+
+  it('returns a readable validation error for bad arguments (not raw JSON)', async () => {
+    const client = await connectedClient();
+    // `define` requires a `term` string; omit it to trigger a ZodError.
+    const res = (await client.callTool({ name: 'supstack_define', arguments: {} })) as {
+      content: { text: string }[];
+      isError?: boolean;
+    };
+    expect(res.isError).toBe(true);
+    expect(res.content[0]?.text).toContain('Invalid arguments:');
+    expect(res.content[0]?.text).toContain('term');
+    await client.close();
+  });
+});
+
+describe('formatToolError', () => {
+  it('flattens a ZodError into path: message pairs', () => {
+    const schema = z.object({ term: z.string() });
+    const err = schema.safeParse({}).error;
+    const formatted = formatToolError(err);
+    expect(formatted).toMatch(/^Invalid arguments: /);
+    expect(formatted).toContain('term:');
+  });
+
+  it('passes through a plain Error message', () => {
+    expect(formatToolError(new Error('boom'))).toBe('boom');
   });
 });
