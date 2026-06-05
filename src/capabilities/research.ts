@@ -92,7 +92,7 @@ export const research = defineCapability({
       const ev = r.detail.evidence;
       const evLine = ev
         ? dim(
-            `evidence ${ev.score ?? '?'}${ev.level ? ` (${ev.level})` : ''}${ev.totalStudies ? ` · ${ev.totalStudies} studies` : ''}`,
+            `evidence ${ev.score !== undefined ? `${ev.score}/10` : '?'}${ev.level ? ` (${ev.level})` : ''}${ev.totalStudies ? ` · ${ev.totalStudies} studies` : ''}`,
           )
         : '';
       out.push(`${bold(r.detail.name)} ${dim(r.detail.slug)}`);

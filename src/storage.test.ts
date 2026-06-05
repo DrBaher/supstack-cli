@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { addToStack, readStack, removeFromStack } from './storage';
+import { addToStack, normalizeSlug, readStack, removeFromStack } from './storage';
 
 let home: string;
 
@@ -35,5 +35,25 @@ describe('local stack storage', () => {
     addToStack('glycine');
     expect(removeFromStack('magnesium')).toEqual(['glycine']);
     expect(readStack()).toEqual(['glycine']);
+  });
+
+  it('normalizes slugs on add so they match the API (lowercase, trimmed)', () => {
+    addToStack('  Magnesium ');
+    addToStack('L-Theanine');
+    expect(readStack()).toEqual(['magnesium', 'l-theanine']);
+  });
+
+  it('treats case variants as the same supplement (add + remove)', () => {
+    addToStack('magnesium');
+    addToStack('MAGNESIUM'); // same supplement → no duplicate
+    expect(readStack()).toEqual(['magnesium']);
+    expect(removeFromStack('Magnesium')).toEqual([]); // mixed-case remove still matches
+  });
+});
+
+describe('normalizeSlug', () => {
+  it('lowercases and trims', () => {
+    expect(normalizeSlug('  Vitamin-D3 ')).toBe('vitamin-d3');
+    expect(normalizeSlug('magnesium')).toBe('magnesium');
   });
 });

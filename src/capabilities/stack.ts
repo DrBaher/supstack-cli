@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { defineCapability } from '../capability';
 import { bold, dim } from '../output';
-import { addToStack, readStack, removeFromStack } from '../storage';
+import { addToStack, normalizeSlug, readStack, removeFromStack } from '../storage';
 
 interface StackResult {
   action: 'add' | 'remove' | 'list';
@@ -34,9 +34,17 @@ export const stack = defineCapability({
   handler: async (input): Promise<StackResult> => {
     switch (input.action) {
       case 'add':
-        return { action: 'add', slug: input.slug, stack: addToStack(input.slug as string) };
+        return {
+          action: 'add',
+          slug: normalizeSlug(input.slug as string),
+          stack: addToStack(input.slug as string),
+        };
       case 'remove':
-        return { action: 'remove', slug: input.slug, stack: removeFromStack(input.slug as string) };
+        return {
+          action: 'remove',
+          slug: normalizeSlug(input.slug as string),
+          stack: removeFromStack(input.slug as string),
+        };
       case 'list':
         return { action: 'list', stack: readStack() };
     }

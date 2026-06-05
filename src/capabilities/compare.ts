@@ -61,7 +61,7 @@ export const compare = defineCapability({
       const rows = d.supplements.map((s) => {
         const m: string[] = [];
         if (s.evidence?.score !== undefined) {
-          m.push(`evidence ${s.evidence.score}${s.evidence.level ? ` (${s.evidence.level})` : ''}`);
+          m.push(`evidence ${s.evidence.score}/10${s.evidence.level ? ` (${s.evidence.level})` : ''}`);
         }
         if (s.evidence?.totalStudies !== undefined) m.push(`${s.evidence.totalStudies} studies`);
         if (s.safety?.overallRating) m.push(`safety: ${s.safety.overallRating}`);
