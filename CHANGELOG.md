@@ -4,6 +4,16 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] — Adherence tracking (Phase 2)
+
+### Added
+
+- **`supstack track log [supplement]`** — log a dose (today/taken by default).
+  No supplement = log your whole stack for the day. `--block`, `--date`, `--skip`.
+- **`supstack track adherence`** — your adherence rate, current streak, and a
+  per-supplement breakdown over the last `--days` (default 30). Implicit-miss:
+  un-logged scheduled doses count as missed.
+
 ## [0.7.0] — Experiments (read)
 
 ### Added
@@ -136,6 +146,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`--pathway`), `stack` (local), `export`, `define` — plus an stdio MCP server
   exposing the same eight as tools, and `auth` / `cache` maintenance commands.
 
+[0.8.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.8.0
 [0.7.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.7.0
 [0.6.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.6.0
 [0.5.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.5.0

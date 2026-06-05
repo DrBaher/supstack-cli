@@ -148,6 +148,30 @@ export function buildProgram(): Command {
       await runWhoami(Boolean(opts.json) || Boolean(program.opts().json));
     });
 
+  // Adherence tracking. `track log [supplement]` + `track adherence`.
+  const track = program.command('track').description('Log doses and view adherence (requires login)');
+  track
+    .command('log [supplement]')
+    .description('Log a dose (no supplement = your whole stack today)')
+    .option('--block <block>', 'timing block: morning | breakfast | midday | dinner | bedtime')
+    .option('--date <date>', 'date YYYY-MM-DD (default today)')
+    .option('--skip', 'record as skipped instead of taken')
+    .option('--json', 'output raw JSON')
+    .action(async (supplement: string | undefined, opts: Record<string, unknown>) => {
+      const { runTrackLog } = await import('./track');
+      await runTrackLog(supplement, opts, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+  track
+    .command('adherence')
+    .description('Show your adherence rate, streak, and per-supplement breakdown')
+    .option('-d, --days <n>', 'window in days (default 30)')
+    .option('--json', 'output raw JSON')
+    .action(async (opts: Record<string, unknown>) => {
+      const { runAdherence } = await import('./track');
+      const days = Math.min(365, Math.max(1, Number(opts.days) || 30));
+      await runAdherence(days, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+
   // N-of-1 experiments (read). `experiments list` + `experiments show <id>`.
   const experiments = program
     .command('experiments')

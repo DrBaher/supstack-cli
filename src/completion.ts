@@ -8,6 +8,7 @@ const EXTRA_COMMANDS = [
   'profile',
   'recommend',
   'experiments',
+  'track',
   'mcp',
   'auth',
   'cache',
