@@ -4,6 +4,20 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — Cloud stack sync (Phase 2, Increment B)
+
+### Added
+
+- **`supstack stack pull | push | sync`** — sync your supplement stack with your
+  account (requires `supstack login`):
+  - `pull` — replace the local stack with your account's stack.
+  - `push` — make your account's membership match local (keeps existing dosage/
+    timing/brand for supplements that stay; drops those not in local).
+  - `sync` — additive merge: union of local + cloud, saved to both. **Never drops
+    or flattens** — existing cloud metadata (dosage/timing/brand) is preserved.
+- Exposed through the MCP `supstack_stack` tool too, so an agent can sync a
+  logged-in user's stack.
+
 ## [0.3.0] — Accounts (Phase 2, Increment A)
 
 ### Added
@@ -92,6 +106,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`--pathway`), `stack` (local), `export`, `define` — plus an stdio MCP server
   exposing the same eight as tools, and `auth` / `cache` maintenance commands.
 
+[0.4.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.4.0
 [0.3.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.3.0
 [0.2.1]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.2.1
 [0.2.0]: https://github.com/DrBaher/supstack-cli/releases/tag/v0.2.0
