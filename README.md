@@ -1,0 +1,100 @@
+# @supstack/cli
+
+Evidence-based supplement intelligence in your terminal — and an MCP server for AI agents.
+
+A thin client over the public [SupStack API](https://supstack.me/api). Read-only,
+no account required. One capability registry powers both the CLI and the MCP server.
+
+> **Status: Phase 1 complete.** All commands below work, plus an MCP server.
+> Not yet published to npm.
+
+## Install
+
+```bash
+npm install -g @supstack/cli   # once published
+# or, from source (in this directory):
+npm install && npm run build && node dist/index.js define adaptogen
+```
+
+## Usage
+
+```bash
+supstack research magnesium --protocol       # full evidence summary for one supplement
+supstack search --goal deep-sleep -n 5       # search by name or filter
+supstack compare magnesium glycine           # 2–3 head-to-head
+supstack studies "sleep" --type rct          # research library
+supstack interactions caffeine l-theanine --pathway   # interaction check (deep pair analysis)
+supstack stack add magnesium                 # local stack (add | remove | list)
+supstack export --format md                  # export your stack
+supstack define bioavailability              # glossary lookup
+supstack <command> --json                    # machine-readable output on any command
+supstack --help
+```
+
+### As an MCP server
+
+```bash
+supstack mcp   # stdio MCP server exposing all capabilities as tools
+```
+
+This gives an agent the full SupStack toolset (`supstack_research`,
+`supstack_search`, `supstack_compare`, `supstack_studies`, `supstack_interactions`,
+`supstack_stack`, `supstack_export`, `supstack_define`).
+
+**Claude Code** (one command):
+
+```bash
+claude mcp add supstack -- supstack mcp
+```
+
+**Claude Desktop** — add to `claude_desktop_config.json`
+(macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "supstack": {
+      "command": "supstack",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+> Before the package is published to npm, point at the built entrypoint instead —
+> `"command": "node", "args": ["/absolute/path/to/supstack-cli/dist/index.js", "mcp"]`
+> (run `npm run build` first), or use `npx -y @supstack/cli mcp` once published.
+
+## Configuration
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `SUPSTACK_API_URL` | `https://supstack.me/api/v1` | API base URL (override for local dev) |
+| `SUPSTACK_API_KEY` | — | Optional API key (anonymous works at 60/min/IP) |
+| `SUPSTACK_CACHE_TTL` | `3600` | Response cache TTL in seconds |
+| `SUPSTACK_NO_CACHE` | — | Set to disable the response cache |
+| `SUPSTACK_HOME` | `~/.supstack` | Directory for config, stack, and cache |
+| `NO_COLOR` | — | Disable ANSI colour |
+
+`supstack auth set-key <key>` persists a key to `~/.supstack/config.json`.
+
+### Response cache
+
+Read-only API responses are cached under `~/.supstack/cache/` (1-hour TTL by
+default) to keep repeat lookups well under the 60/min rate limit. Bypass it per
+command with `--no-cache`, or manage it with `supstack cache clear` /
+`supstack cache path`.
+
+## Develop
+
+```bash
+npm test            # unit tests (mocked fetch)
+npm run type-check  # tsc --noEmit
+npm run build       # tsup → dist/
+```
+
+See [`CLAUDE.md`](./CLAUDE.md) for the capability pattern and how to add a command.
+
+## License
+
+MIT
