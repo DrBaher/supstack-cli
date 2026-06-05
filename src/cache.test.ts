@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { cacheKeyFor, clearCache, readCache, writeCache } from './cache';
+import { cacheIdentityFor, cacheKeyFor, clearCache, readCache, writeCache } from './cache';
 import { apiGet } from './http';
 
 function jsonRes(body: unknown): Response {
@@ -37,6 +37,17 @@ describe('cache store', () => {
     writeCache(cacheKeyFor('b'), 'b', 2, 0);
     expect(clearCache()).toBe(2);
     expect(clearCache()).toBe(0);
+  });
+
+  it('segregates cache keys by identity (no cross-account bleed)', () => {
+    const url = 'https://x/y';
+    const anon = cacheKeyFor(url, cacheIdentityFor(undefined));
+    const userA = cacheKeyFor(url, cacheIdentityFor('key_aaa'));
+    const userB = cacheKeyFor(url, cacheIdentityFor('key_bbb'));
+    expect(new Set([anon, userA, userB]).size).toBe(3); // all distinct
+    expect(cacheIdentityFor(undefined)).toBe('anon');
+    expect(cacheIdentityFor('key_aaa')).toBe(cacheIdentityFor('key_aaa')); // stable
+    expect(cacheIdentityFor('key_aaa')).not.toContain('key_aaa'); // not the raw key
   });
 });
 

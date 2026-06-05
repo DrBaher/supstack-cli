@@ -31,8 +31,21 @@ export function cacheEnabled(force?: boolean): boolean {
   return true;
 }
 
-export function cacheKeyFor(url: string): string {
-  return createHash('sha1').update(url).digest('hex');
+/**
+ * Cache key for a request. The optional `identity` segregates entries by who is
+ * asking: anonymous responses and per-key responses for the same URL must never
+ * share a slot. Today the public API is key-independent, but Phase 2 auth will
+ * return per-user data — folding the identity in now prevents a future
+ * cross-account cache-bleed without a key-format migration.
+ */
+export function cacheKeyFor(url: string, identity = 'anon'): string {
+  return createHash('sha1').update(`${identity}\n${url}`).digest('hex');
+}
+
+/** Short, non-reversible fingerprint of an API key for use as a cache identity. */
+export function cacheIdentityFor(apiKey?: string): string {
+  if (!apiKey) return 'anon';
+  return 'k_' + createHash('sha256').update(apiKey).digest('hex').slice(0, 16);
 }
 
 interface CacheEntry {
