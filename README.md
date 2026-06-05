@@ -50,6 +50,9 @@ Once logged in, sync your stack with your account:
 supstack stack pull     # local ← your account
 supstack stack push     # local → your account (keeps dosage/timing/brand for kept items)
 supstack stack sync     # additive merge of both; preserves existing cloud metadata
+
+supstack profile                              # view your health profile
+supstack profile set --age 35 --sex male --weight 80 --weight-unit kg
 ```
 
 ### As an MCP server

@@ -148,6 +148,31 @@ export function buildProgram(): Command {
       await runWhoami(Boolean(opts.json) || Boolean(program.opts().json));
     });
 
+  // Health profile (requires login). `profile` shows; `profile set` updates.
+  const profile = program
+    .command('profile')
+    .description('View your health profile (requires login)')
+    .option('--json', 'output raw JSON')
+    .action(async (opts: Record<string, unknown>) => {
+      const { runProfileShow } = await import('./profile');
+      await runProfileShow(Boolean(opts.json) || Boolean(program.opts().json));
+    });
+  profile
+    .command('set')
+    .description('Update your health profile')
+    .option('--age <years>', 'age (13–120)')
+    .option('--sex <sex>', 'biological sex: male | female')
+    .option('--weight <value>', 'weight (0–1000)')
+    .option('--weight-unit <unit>', 'kg | lbs')
+    .option('--conditions <list>', 'comma-separated health conditions')
+    .option('--medications <list>', 'comma-separated medications')
+    .option('--goals <list>', 'comma-separated goal ids')
+    .option('--json', 'output raw JSON')
+    .action(async (opts: Record<string, unknown>) => {
+      const { runProfileSet } = await import('./profile');
+      await runProfileSet(opts, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+
   // API-key management (anonymous/manual keys, distinct from account login).
   const auth = program.command('auth').description('Manage API credentials');
   auth
