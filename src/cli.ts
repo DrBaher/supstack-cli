@@ -148,6 +148,29 @@ export function buildProgram(): Command {
       await runWhoami(Boolean(opts.json) || Boolean(program.opts().json));
     });
 
+  // N-of-1 experiments (read). `experiments list` + `experiments show <id>`.
+  const experiments = program
+    .command('experiments')
+    .description('View your N-of-1 experiments (requires login)');
+  experiments
+    .command('list')
+    .description('List your experiments')
+    .option('-s, --status <status>', 'filter: baseline | active | completed | abandoned')
+    .option('--json', 'output raw JSON')
+    .action(async (opts: Record<string, unknown>) => {
+      const { runExperimentsList } = await import('./experiments');
+      const status = typeof opts.status === 'string' ? opts.status : undefined;
+      await runExperimentsList(status, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+  experiments
+    .command('show <id>')
+    .description('Show one experiment (protocol, verdict, check-ins)')
+    .option('--json', 'output raw JSON')
+    .action(async (id: string, opts: Record<string, unknown>) => {
+      const { runExperimentShow } = await import('./experiments');
+      await runExperimentShow(id, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+
   // Personalized recommendations from the user's saved goals + cloud stack.
   program
     .command('recommend')

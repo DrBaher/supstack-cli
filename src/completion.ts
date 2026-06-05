@@ -7,6 +7,7 @@ const EXTRA_COMMANDS = [
   'whoami',
   'profile',
   'recommend',
+  'experiments',
   'mcp',
   'auth',
   'cache',
