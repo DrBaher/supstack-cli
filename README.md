@@ -25,6 +25,7 @@ supstack compare magnesium glycine           # 2–3 head-to-head
 supstack studies "sleep" --type rct          # research library
 supstack interactions caffeine l-theanine --pathway   # interaction check (deep pair analysis)
 supstack stack add magnesium                 # local stack (add | remove | list)
+supstack stack sync                          # sync local ⇄ your account (login required)
 supstack export --format md                  # export your stack
 supstack define bioavailability              # glossary lookup
 supstack <command> --json                    # machine-readable output on any command
@@ -41,8 +42,15 @@ supstack logout         # sign out and revoke this device's token
 
 `login` shows a one-time code, opens `https://supstack.me/activate`, and finishes
 once you approve in the browser. The token lives in `~/.supstack/config.json`
-(`0600`). Reads work fully anonymously — an account unlocks personalized features
-(cloud stack sync, profile) as they land.
+(`0600`). Reads work fully anonymously — an account unlocks personalized features.
+
+Once logged in, sync your stack with your account:
+
+```bash
+supstack stack pull     # local ← your account
+supstack stack push     # local → your account (keeps dosage/timing/brand for kept items)
+supstack stack sync     # additive merge of both; preserves existing cloud metadata
+```
 
 ### As an MCP server
 

@@ -34,6 +34,13 @@ function writeStack(slugs: string[]): void {
   writeFileSync(homePath(STACK_FILE), JSON.stringify({ supplements: unique }, null, 2) + '\n');
 }
 
+/** Replace the entire local stack (normalized + deduped). Used by cloud pull/sync. */
+export function setStack(slugs: string[]): string[] {
+  const normalized = [...new Set(slugs.map(normalizeSlug).filter(Boolean))];
+  writeStack(normalized);
+  return normalized;
+}
+
 /** Add a slug (idempotent, normalized). Returns the resulting stack. */
 export function addToStack(slug: string): string[] {
   const normalized = normalizeSlug(slug);

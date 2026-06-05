@@ -176,15 +176,17 @@ async function resolveApiKey(explicit?: string, fetchImpl?: typeof fetch): Promi
 export interface ApiPostOptions {
   /** `Authorization: Bearer <token>` for authenticated endpoints. */
   bearer?: string;
+  /** HTTP method (default POST). PUT/DELETE for authed mutations. */
+  method?: 'POST' | 'PUT' | 'DELETE';
   fetchImpl?: typeof fetch;
   baseUrl?: string;
   timeoutMs?: number;
 }
 
 /**
- * POST a JSON endpoint. Unlike apiGet this does NOT cache or retry — the auth
- * endpoints (device/start, device/token, anon-token, logout) are stateful, so a
- * blind retry could double-issue. A single attempt under a timeout.
+ * Send a JSON request (POST by default; PUT/DELETE via opts.method). Unlike
+ * apiGet this does NOT cache or retry — the auth + mutation endpoints are
+ * stateful, so a blind retry could double-apply. A single attempt under a timeout.
  */
 export async function apiPost<T = unknown>(
   path: string,
@@ -207,7 +209,7 @@ export async function apiPost<T = unknown>(
   let res: Response;
   try {
     res = await fetchImpl(baseUrl + path, {
-      method: 'POST',
+      method: opts.method ?? 'POST',
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
