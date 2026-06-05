@@ -1,7 +1,7 @@
 import { capabilities } from './registry';
 
 /** Non-capability top-level commands (not in the registry). */
-const EXTRA_COMMANDS = ['login', 'logout', 'whoami', 'mcp', 'auth', 'cache', 'completion', 'help'];
+const EXTRA_COMMANDS = ['login', 'logout', 'whoami', 'profile', 'mcp', 'auth', 'cache', 'completion', 'help'];
 
 /** Every top-level command name, derived from the registry so it can't drift. */
 export function commandNames(): string[] {
