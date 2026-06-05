@@ -1,6 +1,6 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
-import { homePath, supstackHome } from './paths';
+import { ensureDir, homePath, supstackHome } from './paths';
 
 export const DEFAULT_BASE_URL = 'https://supstack.me/api/v1';
 
@@ -38,7 +38,7 @@ export function getApiKey(): string | undefined {
 
 /** Persist an API key to ~/.supstack/config.json (used by `supstack auth set-key`). */
 export function saveApiKey(apiKey: string): string {
-  mkdirSync(supstackHome(), { recursive: true });
+  ensureDir(supstackHome());
   const next: CliConfig = { ...readConfig(), apiKey };
   writeFileSync(configPath(), JSON.stringify(next, null, 2) + '\n', { mode: 0o600 });
   return configPath();

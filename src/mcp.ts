@@ -2,11 +2,24 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 
 import { DISCLAIMER } from './constants';
 import { capabilities } from './registry';
 import { VERSION } from './version';
+
+/**
+ * Render an error as actionable text for the calling agent. ZodError carries a
+ * JSON blob in `.message`; flatten it to `path: message` pairs so the model can
+ * see exactly which argument to fix and retry, rather than parsing raw JSON.
+ */
+export function formatToolError(err: unknown): string {
+  if (err instanceof ZodError) {
+    const issues = err.issues.map((i) => `${i.path.join('.') || '(input)'}: ${i.message}`).join('; ');
+    return `Invalid arguments: ${issues}`;
+  }
+  return (err as Error).message;
+}
 
 /** Sent to the agent on initialize — frames what SupStack is and the wellness disclaimer. */
 const SERVER_INSTRUCTIONS =
@@ -62,7 +75,7 @@ export function buildMcpServer(): Server {
       const output = await cap.handler(input);
       return { content: [{ type: 'text', text: JSON.stringify(cap.format.json(output), null, 2) }] };
     } catch (err) {
-      return { isError: true, content: [{ type: 'text', text: `Error: ${(err as Error).message}` }] };
+      return { isError: true, content: [{ type: 'text', text: formatToolError(err) }] };
     }
   });
 

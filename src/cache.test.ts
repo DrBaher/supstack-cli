@@ -39,6 +39,17 @@ describe('cache store', () => {
     expect(clearCache()).toBe(0);
   });
 
+  it('prunes the oldest entries once the cap is exceeded', () => {
+    // Cap is 500; write 520 entries with strictly increasing mtimes so the
+    // oldest are deterministically evictable, then confirm we settle at the cap.
+    const total = 520;
+    for (let i = 0; i < total; i++) {
+      writeCache(cacheKeyFor(`url-${i}`), `url-${i}`, i, i);
+    }
+    const remaining = clearCache(); // returns how many files it deleted = current count
+    expect(remaining).toBe(500);
+  });
+
   it('segregates cache keys by identity (no cross-account bleed)', () => {
     const url = 'https://x/y';
     const anon = cacheKeyFor(url, cacheIdentityFor(undefined));

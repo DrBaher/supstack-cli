@@ -1,11 +1,14 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { homePath } from './paths';
+import { ensureDir, homePath } from './paths';
 
 /** Default TTL — matches the API's `s-maxage=3600` on evidence endpoints. */
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
+
+/** Hard cap on cached response files. Beyond this, the oldest are pruned on write. */
+const MAX_CACHE_ENTRIES = 500;
 
 function cacheDir(): string {
   return homePath('cache');
@@ -67,11 +70,36 @@ export function readCache(key: string, ttlMs: number, now: number): unknown | un
 
 export function writeCache(key: string, url: string, body: unknown, now: number): void {
   try {
-    mkdirSync(cacheDir(), { recursive: true });
+    ensureDir(cacheDir());
     const entry: CacheEntry = { url, ts: now, body };
     writeFileSync(join(cacheDir(), `${key}.json`), JSON.stringify(entry));
+    pruneCache();
   } catch {
     // Cache writes are best-effort; a failure must never break a command.
+  }
+}
+
+/**
+ * Bound the on-disk cache. Stale entries are only dropped lazily on read, so a
+ * long-lived install accumulating many distinct lookups would grow without
+ * limit. When the file count exceeds the cap, evict the oldest by mtime.
+ */
+function pruneCache(): void {
+  try {
+    const dir = cacheDir();
+    const files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+    if (files.length <= MAX_CACHE_ENTRIES) return;
+    const byAge = files
+      .map((f) => {
+        const p = join(dir, f);
+        return { p, mtime: statSync(p).mtimeMs };
+      })
+      .sort((a, b) => a.mtime - b.mtime); // oldest first
+    for (const { p } of byAge.slice(0, byAge.length - MAX_CACHE_ENTRIES)) {
+      rmSync(p, { force: true });
+    }
+  } catch {
+    // Pruning is best-effort housekeeping; never let it break a write.
   }
 }
 

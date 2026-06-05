@@ -1,6 +1,6 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
-import { homePath, supstackHome } from './paths';
+import { ensureDir, homePath, supstackHome } from './paths';
 
 const STACK_FILE = 'stack.json';
 
@@ -19,7 +19,7 @@ export function readStack(): string[] {
 }
 
 function writeStack(slugs: string[]): void {
-  mkdirSync(supstackHome(), { recursive: true });
+  ensureDir(supstackHome());
   const unique = [...new Set(slugs)];
   writeFileSync(homePath(STACK_FILE), JSON.stringify({ supplements: unique }, null, 2) + '\n');
 }
