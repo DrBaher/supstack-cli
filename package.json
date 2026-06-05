@@ -1,6 +1,6 @@
 {
   "name": "@supstack/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "SupStack CLI — evidence-based supplement intelligence, as a CLI and MCP server.",
   "keywords": [
     "supplements",
@@ -29,10 +29,11 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "publishConfig": {
     "access": "public"

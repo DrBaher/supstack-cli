@@ -5,8 +5,8 @@ Evidence-based supplement intelligence in your terminal — and an MCP server fo
 A thin client over the public [SupStack API](https://supstack.me/api). Read-only,
 no account required. One capability registry powers both the CLI and the MCP server.
 
-> **Status: Phase 1 complete.** All commands below work, plus an MCP server.
-> Not yet published to npm.
+> **Status: Phase 1, published.** All commands below work, plus an MCP server.
+> Install with `npm install -g @supstack/cli`.
 
 ## Install
 

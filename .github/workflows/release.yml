@@ -1,0 +1,49 @@
+name: Release
+
+# Publishes @supstack/cli to npm when a v* tag is pushed, e.g.:
+#   npm version patch && git push --follow-tags
+#
+# Publishing happens from CI (not a laptop) WITH provenance: the
+# `id-token: write` permission lets npm attach a signed, verifiable link from
+# the published tarball back to this commit + workflow run (the npm "provenance"
+# badge). Requires an automation token in the repo secret `NPM_TOKEN`.
+# (Alternatively, configure npm Trusted Publishing for this repo and drop the
+# token — the OIDC identity alone then authorizes the publish.)
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance attestation
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+
+      - run: npm ci
+
+      # Gate the release on the same checks CI runs. (npm publish also triggers
+      # prepublishOnly = type-check + test and prepack = build, but failing here
+      # gives a clearer signal before anything is pushed to the registry.)
+      - name: Verify
+        run: |
+          npm run lint
+          npm run type-check
+          npm test
+          npm run build
+
+      - name: Publish (with provenance)
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
