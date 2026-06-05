@@ -3,12 +3,15 @@ name: Release
 # Publishes @supstack/cli to npm when a v* tag is pushed, e.g.:
 #   npm version patch && git push --follow-tags
 #
-# Publishing happens from CI (not a laptop) WITH provenance: the
-# `id-token: write` permission lets npm attach a signed, verifiable link from
-# the published tarball back to this commit + workflow run (the npm "provenance"
-# badge). Requires an automation token in the repo secret `NPM_TOKEN`.
-# (Alternatively, configure npm Trusted Publishing for this repo and drop the
-# token — the OIDC identity alone then authorizes the publish.)
+# Auth uses npm Trusted Publishing (OIDC) — NO long-lived npm token. The
+# `id-token: write` permission lets this workflow mint a short-lived OIDC
+# credential that npm trusts, and provenance (the verifiable supply-chain
+# attestation / npm "provenance" badge) is generated automatically.
+#
+# ONE-TIME SETUP on npmjs.com → @supstack/cli → Settings → Trusted Publisher:
+#   Provider: GitHub Actions · Org/User: DrBaher · Repo: supstack-cli
+#   Workflow: release.yml   (Environment: leave blank)
+# Once configured, no NPM_TOKEN secret is needed.
 
 on:
   push:
@@ -16,11 +19,11 @@ on:
 
 permissions:
   contents: read
-  id-token: write # required for npm provenance attestation
+  id-token: write # required for OIDC trusted publishing + provenance
 
 jobs:
   publish:
-    name: Publish to npm
+    name: Publish to npm (OIDC)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -30,6 +33,10 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
           cache: npm
+
+      # Trusted Publishing (OIDC) requires npm >= 11.5.1; Node 20 ships npm 10.
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest
 
       - run: npm ci
 
@@ -43,7 +50,7 @@ jobs:
           npm test
           npm run build
 
-      - name: Publish (with provenance)
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # No NODE_AUTH_TOKEN: authentication comes from the OIDC id-token, and
+      # provenance is attached automatically under trusted publishing.
+      - name: Publish
+        run: npm publish --access public
