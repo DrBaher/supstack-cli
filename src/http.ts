@@ -1,4 +1,4 @@
-import { cacheEnabled, cacheKeyFor, cacheTtlMs, readCache, writeCache } from './cache';
+import { cacheEnabled, cacheIdentityFor, cacheKeyFor, cacheTtlMs, readCache, writeCache } from './cache';
 import { getApiKey, getBaseUrl } from './config';
 import { VERSION } from './version';
 
@@ -24,13 +24,31 @@ export interface ApiGetOptions {
   baseUrl?: string;
   /** Force cache on/off for this call (overrides env + the vitest auto-disable). */
   cache?: boolean;
+  /** Per-attempt timeout in ms. A hung connection aborts and is retried. Default 20s. */
+  timeoutMs?: number;
 }
+
+const DEFAULT_TIMEOUT_MS = 20_000;
 
 const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 /** Exponential backoff, capped, in milliseconds. */
 function backoffMs(attempt: number): number {
   return Math.min(2000, 250 * 2 ** attempt);
+}
+
+/**
+ * Parse a `Retry-After` header. Per RFC 7231 it is EITHER a delay in seconds OR
+ * an HTTP-date; honour both. Returns the delay in ms, or null if unparseable.
+ */
+export function parseRetryAfter(value: string | null, now: number): number | null {
+  if (!value) return null;
+  const secs = Number(value);
+  if (Number.isFinite(secs)) return secs > 0 ? secs * 1000 : null;
+  const date = Date.parse(value);
+  if (Number.isNaN(date)) return null;
+  const delta = date - now;
+  return delta > 0 ? delta : null;
 }
 
 /**
@@ -47,6 +65,7 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
   const baseUrl = opts.baseUrl ?? getBaseUrl();
   const apiKey = opts.apiKey ?? getApiKey();
   const maxRetries = opts.maxRetries ?? 3;
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   const url = new URL(baseUrl + path);
   for (const [key, value] of Object.entries(opts.query ?? {})) {
@@ -62,7 +81,7 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
   // Read-through cache: a fresh entry short-circuits the network entirely,
   // which is what keeps repeat lookups under the 60/min IP limit.
   const useCache = cacheEnabled(opts.cache);
-  const cacheKey = useCache ? cacheKeyFor(url.toString()) : null;
+  const cacheKey = useCache ? cacheKeyFor(url.toString(), cacheIdentityFor(apiKey)) : null;
   if (cacheKey) {
     const hit = readCache(cacheKey, cacheTtlMs(), Date.now());
     if (hit !== undefined) return hit as T;
@@ -71,15 +90,25 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
   let attempt = 0;
   for (;;) {
     let res: Response;
+    // Abort a hung connection so a stalled request can't block the CLI — or, worse,
+    // an MCP agent's tool call — forever. A timeout is retried like a network error.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      res = await fetchImpl(url.toString(), { headers });
+      res = await fetchImpl(url.toString(), { headers, signal: controller.signal });
     } catch (err) {
+      const timedOut = controller.signal.aborted;
       if (attempt >= maxRetries) {
-        throw new ApiError(0, `Network error: ${(err as Error).message}`);
+        throw new ApiError(
+          0,
+          timedOut ? `Request timed out after ${timeoutMs}ms` : `Network error: ${(err as Error).message}`,
+        );
       }
       await sleep(backoffMs(attempt));
       attempt++;
       continue;
+    } finally {
+      clearTimeout(timer);
     }
 
     // Transient: retry with backoff (respecting Retry-After).
@@ -87,8 +116,7 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
       if (attempt >= maxRetries) {
         throw new ApiError(res.status, `Request failed after ${maxRetries} retries (HTTP ${res.status})`);
       }
-      const retryAfter = Number(res.headers.get('retry-after'));
-      const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : backoffMs(attempt);
+      const wait = parseRetryAfter(res.headers.get('retry-after'), Date.now()) ?? backoffMs(attempt);
       await sleep(wait);
       attempt++;
       continue;

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { ApiError, apiGet } from './http';
+import { ApiError, apiGet, parseRetryAfter } from './http';
 
 function res(body: unknown, status: number, headers: Record<string, string> = {}): Response {
   return {
@@ -49,5 +49,42 @@ describe('apiGet', () => {
       apiGet('/x', { fetchImpl, sleepImpl: noSleep, maxRetries: 2, baseUrl: 'https://example.test/api/v1' }),
     ).rejects.toBeInstanceOf(ApiError);
     expect(fetchImpl).toHaveBeenCalledTimes(3); // initial + 2 retries
+  });
+
+  it('aborts a hung request via the timeout signal and retries, then reports a timeout', async () => {
+    // A fetch that never resolves until its abort signal fires.
+    const fetchImpl = vi.fn((_url: string, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        const signal = init?.signal;
+        signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      });
+    });
+    await expect(
+      apiGet('/slow', {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        sleepImpl: noSleep,
+        maxRetries: 1,
+        timeoutMs: 5,
+        baseUrl: 'https://example.test/api/v1',
+      }),
+    ).rejects.toMatchObject({ status: 0, message: 'Request timed out after 5ms' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2); // initial + 1 retry, each aborted
+  });
+});
+
+describe('parseRetryAfter', () => {
+  it('parses a delay in seconds', () => {
+    expect(parseRetryAfter('30', 0)).toBe(30_000);
+  });
+  it('parses an HTTP-date relative to now', () => {
+    const now = Date.parse('2026-01-01T00:00:00Z');
+    expect(parseRetryAfter('Thu, 01 Jan 2026 00:00:10 GMT', now)).toBe(10_000);
+  });
+  it('returns null for past dates, zero, and garbage', () => {
+    const now = Date.parse('2026-01-01T00:00:10Z');
+    expect(parseRetryAfter('Thu, 01 Jan 2026 00:00:00 GMT', now)).toBeNull();
+    expect(parseRetryAfter('0', 0)).toBeNull();
+    expect(parseRetryAfter('soon', 0)).toBeNull();
+    expect(parseRetryAfter(null, 0)).toBeNull();
   });
 });
