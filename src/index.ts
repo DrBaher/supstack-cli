@@ -1,4 +1,4 @@
-import { buildProgram } from './cli';
+import { buildProgram, printError } from './cli';
 import { checkForUpdate } from './update';
 
 async function main(): Promise<void> {
@@ -15,6 +15,9 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(`${(err as Error).message}\n`);
+  // Hand-registered authed commands (login/profile/recommend/experiments/track/…)
+  // throw up to here; route through the same formatter the registry commands use
+  // so errors are clean, carry the 401 hint, and are machine-readable in --json.
+  printError(err, process.argv.includes('--json'));
   process.exit(1);
 });
