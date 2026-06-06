@@ -4,6 +4,17 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] — `interactions --medication`: supplement × drug checks
+
+### Added
+
+- **`supstack interactions <supplements...> --medication <drug>`** — checks **each**
+  supplement against a medication and lists the matching drug-interaction warnings
+  with clinical severity (red = major/severe/contraindicated). Answers "does my
+  stack interact with lisinopril?". Works with a single supplement too.
+- The `supstack_interactions` MCP tool gains the same `medication` mode (agents can
+  now do supplement×drug safety checks).
+
 ## [0.14.0] — One-step completion install + Homebrew
 
 ### Added
