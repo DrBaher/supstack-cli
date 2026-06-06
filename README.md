@@ -68,7 +68,8 @@ supstack mcp   # stdio MCP server exposing all capabilities as tools
 
 This gives an agent the full SupStack toolset. **Read-only** (no account needed):
 `supstack_research`, `supstack_search`, `supstack_compare`, `supstack_studies`,
-`supstack_interactions`, `supstack_stack`, `supstack_export`, `supstack_define`.
+`supstack_interactions`, `supstack_stack`, `supstack_rate_stack`, `supstack_export`,
+`supstack_define`.
 
 **Account-scoped** tools are also exposed — `supstack_recommend`,
 `supstack_profile_get` / `supstack_profile_set`, `supstack_experiments_list` /
