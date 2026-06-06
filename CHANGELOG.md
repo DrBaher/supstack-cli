@@ -4,6 +4,25 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] — Clearer `rate` output: what the grade means + inferred-goal flag
+
+### Changed
+
+- **`rate` now explains the grade.** The headline reads e.g. `Stack grade: D ·
+  41/100 · weak match for your goals` instead of a bare `D (41/100)` — so the
+  letter and number are meaningful on their own. (User feedback: an agent relayed
+  "41/D" and the meaning was unclear.)
+- **Inferred goals are flagged at the score and made actionable.** When goals
+  weren't given, the headline says "…match for **inferred** goals", and a `⚠`
+  block names the inferred goals and shows how to pass `--goals` for a tailored
+  score.
+- The grade response now carries `ratingLabel` (Excellent | Strong | Fair | Weak |
+  Poor) and a self-contained `summary` sentence. The `supstack_rate_stack` MCP
+  tool description now instructs agents to relay the `summary` (not the bare
+  score/letter) and to state whether goals were given or inferred.
+
+Backed by the `/api/v1/stack/grade` `ratingLabel`/`summary` fields.
+
 ## [0.11.1] — Docs: list `supstack_rate_stack` in the MCP toolset
 
 ### Docs

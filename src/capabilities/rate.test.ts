@@ -15,6 +15,8 @@ const GRADE = {
   data: {
     letter: 'B',
     score: 81,
+    ratingLabel: 'Strong',
+    summary: 'Your stack scores 81 out of 100 (grade B) — a strong match for your goals.',
     verdict: 'Strong stack — well-matched with minor gaps.',
     goalsSource: 'provided',
     goals: [
@@ -90,13 +92,29 @@ describe('rate capability', () => {
     await expect(rate.handler({})).rejects.toThrow(/empty/i);
   });
 
-  it('renders a grade with per-goal coverage and gaps', () => {
+  it('renders a self-explanatory grade with coverage, gaps, and the goal source', () => {
     const text = rate.format.text(GRADE.data as never);
     expect(text).toContain('Stack grade:');
-    expect(text).toContain('B');
     expect(text).toContain('81/100');
+    // The headline explains what the letter/score mean — not a bare "B".
+    expect(text).toContain('strong match for your goals');
     expect(text).toContain('Improve deep sleep quality');
     expect(text).toContain('Gaps:');
-    expect(text).toContain('Build strength & muscle');
+    // Provided goals are stated plainly.
+    expect(text).toContain('Graded against the goals you gave');
+  });
+
+  it('flags inferred goals and tells the user they can specify their own', () => {
+    const inferred = {
+      ...GRADE.data,
+      goalsSource: 'inferred',
+      ratingLabel: 'Weak',
+      letter: 'D',
+      score: 41,
+    };
+    const text = rate.format.text(inferred as never);
+    expect(text).toMatch(/inferred from your stack/i);
+    expect(text).toContain('--goals');
+    expect(text).toContain('weak match');
   });
 });
