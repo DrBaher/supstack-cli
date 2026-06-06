@@ -36,6 +36,7 @@ export const EXAMPLES: Record<string, string[]> = {
   interactions: [
     'supstack interactions magnesium zinc',
     'supstack interactions caffeine l-theanine ashwagandha --pathway',
+    'supstack interactions magnesium potassium --medication lisinopril',
   ],
   stack: [
     'supstack stack list',
