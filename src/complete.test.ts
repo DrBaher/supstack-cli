@@ -12,7 +12,9 @@ function jsonRes(body: unknown): Response {
 
 const slugMock = (): ReturnType<typeof vi.fn> =>
   vi.fn(() =>
-    Promise.resolve(jsonRes({ data: [{ slug: 'magnesium' }, { slug: 'creatine' }], meta: { totalPages: 1 } })),
+    Promise.resolve(
+      jsonRes({ data: [{ slug: 'magnesium' }, { slug: 'creatine' }], meta: { totalPages: 1 } }),
+    ),
   );
 
 let home: string;

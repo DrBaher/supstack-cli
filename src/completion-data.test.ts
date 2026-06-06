@@ -4,12 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  fetchGoalIds,
-  fetchSupplementSlugs,
-  loadCandidates,
-  warmCompletionCache,
-} from './completion-data';
+import { fetchGoalIds, fetchSupplementSlugs, loadCandidates, warmCompletionCache } from './completion-data';
 
 function jsonRes(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as unknown as Response;
@@ -59,7 +54,10 @@ describe('completion-data', () => {
 
   it('loadCandidates fetches on a cold cache, then serves the warm cache', async () => {
     const fetchImpl = apiMock();
-    const first = await loadCandidates('goals', { now: 1000, fetchImpl: fetchImpl as unknown as typeof fetch });
+    const first = await loadCandidates('goals', {
+      now: 1000,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
     expect(first).toEqual(['deep-sleep', 'focus']);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
 

@@ -63,7 +63,12 @@ export function completeContext(words: string[]): CompletionContext {
 
   // `<cmd> add|remove|log <slug>`.
   const actions = ACTION_THEN_SLUG[command];
-  if (actions && positionals.length === 1 && positionals[0] !== undefined && actions.includes(positionals[0])) {
+  if (
+    actions &&
+    positionals.length === 1 &&
+    positionals[0] !== undefined &&
+    actions.includes(positionals[0])
+  ) {
     return { kind: 'supplements' };
   }
 

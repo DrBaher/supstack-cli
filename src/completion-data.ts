@@ -71,9 +71,7 @@ export async function fetchSupplementSlugs(
   const slugs = first.data.map((d) => d.slug);
   const totalPages = Math.min(first.meta?.totalPages ?? 1, 20); // hard cap: never paginate unbounded
   if (totalPages > 1) {
-    const rest = await Promise.all(
-      Array.from({ length: totalPages - 1 }, (_, i) => get(i + 2)),
-    );
+    const rest = await Promise.all(Array.from({ length: totalPages - 1 }, (_, i) => get(i + 2)));
     for (const page of rest) for (const d of page.data) slugs.push(d.slug);
   }
   return [...new Set(slugs)].sort();
@@ -125,9 +123,7 @@ export async function loadCandidates(
  * Force-refresh both candidate caches (used by `supstack completion refresh`).
  * Returns the count fetched per kind. Best-effort: a failed kind reports 0.
  */
-export async function warmCompletionCache(
-  fetchImpl?: typeof fetch,
-): Promise<Record<CandidateKind, number>> {
+export async function warmCompletionCache(fetchImpl?: typeof fetch): Promise<Record<CandidateKind, number>> {
   // Explicit user action — use a generous budget so it reliably warms even on a
   // cold TLS connection (the TAB-time path stays tight).
   const timeoutMs = 10_000;
