@@ -11,10 +11,19 @@ no account required. One capability registry powers both the CLI and the MCP ser
 ## Install
 
 ```bash
-npm install -g @supstack/cli   # once published
-# or, from source (in this directory):
-npm install && npm run build && node dist/index.js define adaptogen
+# Homebrew (macOS / Linux)
+brew install drbaher/supstack/supstack
+
+# or npm
+npm install -g @supstack/cli
+
+# or run without installing
+npx -y @supstack/cli define adaptogen
 ```
+
+Then enable shell completion: `supstack completion install`.
+
+From source (in this directory): `npm install && npm run build && node dist/index.js define adaptogen`.
 
 ## Usage
 

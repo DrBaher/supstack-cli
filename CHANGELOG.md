@@ -4,7 +4,7 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.0] — One-step completion install
+## [0.14.0] — One-step completion install + Homebrew
 
 ### Added
 
@@ -12,6 +12,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   completion script, and wires your rc file with a single marked, idempotent
   `source` block (fish needs no rc edit — it auto-loads). **`completion uninstall`**
   removes it cleanly, preserving the rest of your rc file.
+
+### Distribution
+
+- **Homebrew** — `brew install drbaher/supstack/supstack` (tap
+  [DrBaher/homebrew-supstack](https://github.com/DrBaher/homebrew-supstack)). The
+  formula is bumped automatically on each release.
 
 ## [0.13.0] — `goals`: discover goal ids
 
