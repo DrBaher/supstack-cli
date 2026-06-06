@@ -4,6 +4,29 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] — Authenticated MCP tools + colour polish
+
+### Added
+
+- **Account-scoped MCP tools.** The MCP server now exposes the authenticated
+  operations to agents, alongside the 8 read-only tools: `supstack_recommend`,
+  `supstack_profile_get` / `supstack_profile_set`, `supstack_experiments_list` /
+  `supstack_experiments_get`, `supstack_track_log`, `supstack_track_adherence`
+  (cloud stack pull/push/sync was already reachable via `supstack_stack`). They
+  require the user to be signed in (`supstack login` / `SUPSTACK_TOKEN`) and
+  return a clear "not logged in" error otherwise. Mutating tools (`profile_set`,
+  `track_log`) carry `readOnlyHint: false`.
+- **`--color` / `--no-color` flags** (in addition to `NO_COLOR` / `FORCE_COLOR`)
+  to force colour on through a pipe or off in a TTY. Resolved before any output
+  and position-independent.
+- A **404 hint** in error output pointing at `supstack search` to find valid slugs.
+
+### Changed
+
+- The "good" tier now renders in **green** (aligning with the web app's
+  evidence colours): strong evidence (≥8/10) in `search`, positive interactions,
+  and ≥90% adherence (overall + per-supplement).
+
 ## [0.9.0] — CLI polish: dynamic completion, exit codes, help examples
 
 ### Added

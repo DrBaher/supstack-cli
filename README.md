@@ -65,9 +65,17 @@ supstack track adherence                      # your adherence rate, streak, per
 supstack mcp   # stdio MCP server exposing all capabilities as tools
 ```
 
-This gives an agent the full SupStack toolset (`supstack_research`,
-`supstack_search`, `supstack_compare`, `supstack_studies`, `supstack_interactions`,
-`supstack_stack`, `supstack_export`, `supstack_define`).
+This gives an agent the full SupStack toolset. **Read-only** (no account needed):
+`supstack_research`, `supstack_search`, `supstack_compare`, `supstack_studies`,
+`supstack_interactions`, `supstack_stack`, `supstack_export`, `supstack_define`.
+
+**Account-scoped** tools are also exposed — `supstack_recommend`,
+`supstack_profile_get` / `supstack_profile_set`, `supstack_experiments_list` /
+`supstack_experiments_get`, `supstack_track_log`, `supstack_track_adherence`
+(plus cloud `supstack_stack` pull/push/sync). These require the user to be signed
+in (`supstack login`, or a `SUPSTACK_TOKEN`); without a token they return a clear
+"not logged in" error rather than failing. Mutating tools (`profile_set`,
+`track_log`) are flagged `readOnlyHint: false` for the agent.
 
 **Claude Code** (one command):
 
@@ -89,9 +97,9 @@ claude mcp add supstack -- supstack mcp
 }
 ```
 
-> Before the package is published to npm, point at the built entrypoint instead —
-> `"command": "node", "args": ["/absolute/path/to/supstack-cli/dist/index.js", "mcp"]`
-> (run `npm run build` first), or use `npx -y @supstack/cli mcp` once published.
+> Or run it without a global install via `"command": "npx", "args": ["-y", "@supstack/cli", "mcp"]`.
+> To use a local checkout, point at the built entrypoint —
+> `"command": "node", "args": ["/absolute/path/to/supstack-cli/dist/index.js", "mcp"]` (run `npm run build` first).
 
 ## Configuration
 
@@ -107,8 +115,9 @@ claude mcp add supstack -- supstack mcp
 | `SUPSTACK_NO_ANON_TOKEN` | — | Disable auto-minting of the anonymous instant-token |
 | `SUPSTACK_NO_UPDATE_CHECK` | — | Disable the "update available" notice (also honours `NO_UPDATE_NOTIFIER`) |
 | `NO_COLOR` | — | Disable ANSI colour |
+| `FORCE_COLOR` | — | Force ANSI colour on (even when piped) |
 
-Global flags available on any command: `--json`, `--no-cache`, `--timeout <seconds>`, `-q, --quiet`.
+Global flags available on any command: `--json`, `--no-cache`, `--timeout <seconds>`, `--color` / `--no-color`, `-q, --quiet`.
 
 `supstack auth set-key <key>` persists a key to `~/.supstack/config.json` (written `0600`).
 
