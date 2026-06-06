@@ -4,6 +4,37 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] — CLI polish: dynamic completion, exit codes, help examples
+
+### Added
+
+- **Dynamic shell completion.** The bash/zsh/fish scripts now forward the typed
+  line to a hidden `supstack __complete`, which offers context-aware candidates:
+  top-level commands, sub-actions (`stack <TAB>` → `add remove …`), **supplement
+  slugs** where a slug is expected (`research`/`compare`/`interactions`/`stack
+  add`/`track log`), and **goal ids** after `search --goal`. Slug/goal lists are
+  fetched once and cached under `~/.supstack/completion/` (24h TTL).
+- **`supstack completion refresh`** — pre-warm / refresh the completion value cache.
+- **Semantic exit codes.** Failures now exit with a code by kind: `2` auth, `3`
+  not-found, `4` rate-limited, `5` network/timeout, `6` invalid input (`1`
+  otherwise). Documented in the README; applied to every command path.
+- **Usage examples in `--help`** for the major commands (`search`, `stack`,
+  `interactions`, `compare`, `research`, `studies`, `recommend`, `profile set`,
+  `track log`, `experiments list`, …).
+
+### Fixed
+
+- Completion scripts are robust on **macOS's bash 3.2**: the bash script reads
+  candidates via a `read` loop so a non-default `IFS` can't corrupt the quoted
+  `"${COMP_WORDS[@]:…}"` array-slice expansion (a bash 3.2 quirk that previously
+  mangled the forwarded tokens).
+
+### Notes
+
+- Completion runs side-effect-free: it never mints/persists an anonymous API key,
+  and a cold-cache fetch is bounded (TAB stays responsive; degrades to "no
+  suggestions" offline).
+
 ## [0.8.2] — Audit-deferred hardening
 
 ### Fixed

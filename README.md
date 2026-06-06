@@ -121,14 +121,42 @@ command with `--no-cache`, or manage it with `supstack cache clear` /
 
 ### Shell completion
 
-Generate a completion script for your shell (the command list is derived from
-the registry, so it never drifts):
+Generate a completion script for your shell:
 
 ```bash
 supstack completion bash >> ~/.bashrc
 supstack completion zsh  > "${fpath[1]}/_supstack"
 supstack completion fish > ~/.config/fish/completions/supstack.fish
 ```
+
+Completions are **dynamic** — the script forwards what you've typed to
+`supstack __complete`, which offers the right thing for the position:
+
+- top-level commands and sub-actions (`stack <TAB>` → `add remove list pull push sync`)
+- **supplement slugs** where a slug is expected (`research <TAB>`, `compare a <TAB>`, `stack add <TAB>`, `track log <TAB>`)
+- **goal ids** after `search --goal <TAB>`
+
+Slug/goal lists are fetched once from the API and cached under
+`~/.supstack/completion/` (24-hour TTL). Pre-warm or refresh them with:
+
+```bash
+supstack completion refresh
+```
+
+### Exit codes
+
+Commands exit with a semantic code so scripts and MCP wrappers can branch on the
+kind of failure:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Generic error (incl. 5xx) |
+| `2` | Auth required/rejected (not logged in, 401, 403) |
+| `3` | Not found (404) |
+| `4` | Rate limited (429) |
+| `5` | Network failure / timeout |
+| `6` | Invalid input (bad args, 400/422) |
 
 ## Develop
 

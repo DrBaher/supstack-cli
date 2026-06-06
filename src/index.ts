@@ -1,7 +1,16 @@
 import { buildProgram, printError } from './cli';
+import { exitCodeFor } from './exit-codes';
 import { checkForUpdate } from './update';
 
 async function main(): Promise<void> {
+  // Hidden completion path: dispatched BEFORE commander so arbitrary `--flags`
+  // in the typed line aren't parsed as options. Prints candidates, then exits.
+  if (process.argv[2] === '__complete') {
+    const { runComplete } = await import('./complete');
+    await runComplete(process.argv.slice(3));
+    return;
+  }
+
   await buildProgram().parseAsync(process.argv);
 
   // After the command completes, surface a once-a-day "update available" nudge.
@@ -19,5 +28,5 @@ main().catch((err: unknown) => {
   // throw up to here; route through the same formatter the registry commands use
   // so errors are clean, carry the 401 hint, and are machine-readable in --json.
   printError(err, process.argv.includes('--json'));
-  process.exit(1);
+  process.exit(exitCodeFor(err));
 });

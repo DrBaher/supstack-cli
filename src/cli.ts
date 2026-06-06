@@ -5,10 +5,13 @@ import { buildInput } from './args';
 import { cachePath, clearCache } from './cache';
 import type { AnyCapability } from './capability';
 import { completionScript, isShell } from './completion';
+import { warmCompletionCache } from './completion-data';
 import { saveApiKey } from './config';
 import { DISCLAIMER } from './constants';
+import { exitCodeFor } from './exit-codes';
+import { attachExamples } from './help-text';
 import { ApiError } from './http';
-import { dim, red } from './output';
+import { cyan, dim, red } from './output';
 import { capabilities } from './registry';
 import { VERSION } from './version';
 
@@ -92,6 +95,7 @@ export function buildProgram(): Command {
     cmd.option('--json', 'output raw JSON');
     cmd.option('--no-cache', 'bypass the local response cache');
     cmd.option('--timeout <seconds>', 'per-request timeout in seconds (default 20)');
+    attachExamples(cmd, cap.cli.command);
     cmd.action(async (...actionArgs: unknown[]) => {
       const options = actionArgs[actionArgs.length - 2] as Record<string, unknown>;
       const positionals = actionArgs.slice(0, actionArgs.length - 2);
@@ -108,7 +112,7 @@ export function buildProgram(): Command {
         await runCapability(cap, input, asJson);
       } catch (err) {
         printError(err, asJson);
-        process.exitCode = 1;
+        process.exitCode = exitCodeFor(err);
       }
     });
   }
@@ -271,11 +275,20 @@ export function buildProgram(): Command {
       process.stdout.write(`${cachePath()}\n`);
     });
 
-  // Shell completion script generator (bash | zsh | fish), derived from the registry.
+  // Shell completion: `completion <shell>` prints the script; `completion refresh`
+  // warms the dynamic-value cache (supplement slugs + goal ids).
   program
     .command('completion [shell]')
-    .description('Print a shell completion script (bash | zsh | fish)')
-    .action((shell?: string) => {
+    .description('Print a shell completion script (bash | zsh | fish), or `refresh` the value cache')
+    .action(async (shell?: string) => {
+      if (shell === 'refresh') {
+        const counts = await warmCompletionCache();
+        process.stdout.write(
+          dim('Refreshed completion cache: ') +
+            `${cyan(String(counts.supplements))} supplements, ${cyan(String(counts.goals))} goals\n`,
+        );
+        return;
+      }
       const target = shell ?? process.env.SHELL?.split('/').pop() ?? 'bash';
       if (!isShell(target)) {
         process.stderr.write(red(`Unsupported shell: ${target}`) + ' (expected bash, zsh, or fish)\n');
@@ -284,6 +297,32 @@ export function buildProgram(): Command {
       }
       process.stdout.write(completionScript(target));
     });
+
+  // Attach usage examples to the hand-built subcommands. (Registry commands get
+  // theirs in the loop above; this covers the account/track/experiments group.)
+  const find = (parent: Command, name: string): Command | undefined =>
+    parent.commands.find((c) => c.name() === name);
+  const trackCmd = find(program, 'track');
+  if (trackCmd) {
+    const log = find(trackCmd, 'log');
+    if (log) attachExamples(log, 'track log');
+    const adherence = find(trackCmd, 'adherence');
+    if (adherence) attachExamples(adherence, 'track adherence');
+  }
+  const expCmd = find(program, 'experiments');
+  if (expCmd) {
+    const list = find(expCmd, 'list');
+    if (list) attachExamples(list, 'experiments list');
+    const show = find(expCmd, 'show');
+    if (show) attachExamples(show, 'experiments show');
+  }
+  const recommendCmd = find(program, 'recommend');
+  if (recommendCmd) attachExamples(recommendCmd, 'recommend');
+  const profileCmd = find(program, 'profile');
+  if (profileCmd) {
+    const set = find(profileCmd, 'set');
+    if (set) attachExamples(set, 'profile set');
+  }
 
   program.addHelpText(
     'after',
