@@ -1,3 +1,5 @@
+import { CommanderError } from 'commander';
+
 import { buildProgram, printError } from './cli';
 import { exitCodeFor } from './exit-codes';
 import { setColorOverride } from './output';
@@ -41,6 +43,10 @@ main().catch((err: unknown) => {
   // Hand-registered authed commands (login/profile/recommend/experiments/track/…)
   // throw up to here; route through the same formatter the registry commands use
   // so errors are clean, carry the 401 hint, and are machine-readable in --json.
-  printError(err, process.argv.includes('--json'));
+  // CommanderError (usage errors, --help, --version) already printed its own
+  // message/help text, so don't re-print it — just map it to an exit code.
+  if (!(err instanceof CommanderError)) {
+    printError(err, process.argv.includes('--json'));
+  }
   process.exit(exitCodeFor(err));
 });

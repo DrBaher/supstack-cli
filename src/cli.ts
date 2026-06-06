@@ -80,6 +80,11 @@ async function runCapability(cap: AnyCapability, input: unknown, asJson: boolean
 
 export function buildProgram(): Command {
   const program = new Command();
+  // Throw on commander's own errors (unknown command/option, missing args) and
+  // on --help/--version instead of calling process.exit itself. index.ts then
+  // routes them through exitCodeFor, so CLI-misuse exits with the same
+  // INVALID_INPUT (6) as a schema validation error — one consistent contract.
+  program.exitOverride();
   program
     .name('supstack')
     .description('SupStack CLI — evidence-based supplement intelligence')
