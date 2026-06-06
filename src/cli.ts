@@ -55,6 +55,10 @@ export function printError(err: unknown, asJson = false): void {
       process.stderr.write(
         dim('  Hint: set a key with `supstack auth set-key <key>` or SUPSTACK_API_KEY.\n'),
       );
+    } else if (err.status === 404) {
+      process.stderr.write(
+        dim('  Hint: check the slug/id — `supstack search <name>` lists valid supplement slugs.\n'),
+      );
     } else if (err.status === 429) {
       process.stderr.write(
         dim('  Hint: rate limit hit (60/min). The client retries automatically; try again shortly.\n'),
@@ -83,6 +87,8 @@ export function buildProgram(): Command {
     .option('--json', 'output raw JSON')
     .option('--no-cache', 'bypass the local response cache')
     .option('--timeout <seconds>', 'per-request timeout in seconds (default 20)')
+    .option('--color', 'force ANSI colour (even when piped)')
+    .option('--no-color', 'disable ANSI colour (also honours NO_COLOR / FORCE_COLOR)')
     .option('-q, --quiet', 'suppress the update-available notice');
 
   for (const cap of capabilities) {

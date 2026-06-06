@@ -1,8 +1,22 @@
 import { buildProgram, printError } from './cli';
 import { exitCodeFor } from './exit-codes';
+import { setColorOverride } from './output';
 import { checkForUpdate } from './update';
 
 async function main(): Promise<void> {
+  // Resolve --color/--no-color up front (before any output) and strip them from
+  // argv so they work in any position without every command having to declare
+  // them. Precedence handled in output.ts: override → NO_COLOR → FORCE_COLOR → TTY.
+  for (let i = process.argv.length - 1; i >= 2; i--) {
+    if (process.argv[i] === '--no-color') {
+      setColorOverride(false);
+      process.argv.splice(i, 1);
+    } else if (process.argv[i] === '--color') {
+      setColorOverride(true);
+      process.argv.splice(i, 1);
+    }
+  }
+
   // Hidden completion path: dispatched BEFORE commander so arbitrary `--flags`
   // in the typed line aren't parsed as options. Prints candidates, then exits.
   if (process.argv[2] === '__complete') {

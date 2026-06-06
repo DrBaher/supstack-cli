@@ -1,7 +1,7 @@
 import { NotLoggedInError } from './cloud-stack';
 import { getToken } from './config';
 import { apiGetAuthed, apiPost } from './http';
-import { bold, cyan, dim, yellow } from './output';
+import { bold, cyan, dim, green, yellow } from './output';
 
 interface TrackResult {
   date: string;
@@ -103,13 +103,14 @@ export async function runAdherence(days: number, asJson: boolean): Promise<void>
   }
   const pct = (r: number): string => `${Math.round(r * 100)}%`;
   out(bold(`Adherence`) + dim(` · last ${a.days} days`));
-  out(`  Overall   ${cyan(pct(a.rate))}  ${dim(`(${a.takenDoses}/${a.scheduledDoses} doses)`)}`);
+  const overall = a.rate >= 0.9 ? green(pct(a.rate)) : a.rate < 0.5 ? yellow(pct(a.rate)) : cyan(pct(a.rate));
+  out(`  Overall   ${overall}  ${dim(`(${a.takenDoses}/${a.scheduledDoses} doses)`)}`);
   out(`  Streak    ${a.streak > 0 ? cyan(`${a.streak} day${a.streak === 1 ? '' : 's'}`) : dim('0 days')}`);
   out();
   out(dim('  By supplement (worst first)'));
   for (const s of a.perSupplement) {
     const r = pct(s.rate);
-    const colored = s.rate < 0.5 ? yellow(r) : s.rate >= 0.9 ? cyan(r) : r;
+    const colored = s.rate < 0.5 ? yellow(r) : s.rate >= 0.9 ? green(r) : r;
     out(`    ${s.slug.padEnd(20)} ${bar(s.rate)} ${colored}`);
   }
 }
