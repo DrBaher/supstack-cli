@@ -16,6 +16,12 @@ describe('completion', () => {
     expect(completionScript('fish')).toContain('complete -c supstack');
   });
 
+  it('every script forwards the typed tokens to `supstack __complete`', () => {
+    for (const shell of ['bash', 'zsh', 'fish'] as const) {
+      expect(completionScript(shell)).toContain('supstack __complete');
+    }
+  });
+
   it('isShell narrows only supported shells', () => {
     expect(isShell('bash')).toBe(true);
     expect(isShell('zsh')).toBe(true);
