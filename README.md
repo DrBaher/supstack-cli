@@ -26,6 +26,7 @@ supstack studies "sleep" --type rct          # research library
 supstack interactions caffeine l-theanine --pathway   # interaction check (deep pair analysis)
 supstack stack add magnesium                 # local stack (add | remove | list)
 supstack stack sync                          # sync local ⇄ your account (login required)
+supstack rate --goals deep-sleep,sharpen-focus   # grade your stack A–F by goal coverage
 supstack export --format md                  # export your stack
 supstack define bioavailability              # glossary lookup
 supstack <command> --json                    # machine-readable output on any command
