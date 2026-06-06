@@ -253,13 +253,11 @@ describe('experiments write', () => {
 
   it('checkInExperiment POSTs to the check-in endpoint', async () => {
     process.env.SUPSTACK_TOKEN = 'sct_live_x';
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(
-        jsonRes({
-          data: { id: 'e1', status: 'active', checkInNumber: 1, progress: { completed: 1, expected: 4 } },
-        }),
-      );
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonRes({
+        data: { id: 'e1', status: 'active', checkInNumber: 1, progress: { completed: 1, expected: 4 } },
+      }),
+    );
     await checkInExperiment('e1', { 'sleep-onset': '15' }, fetchImpl as unknown as typeof fetch);
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
     expect(String(url)).toContain('/me/experiments/e1/check-in');
