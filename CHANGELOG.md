@@ -4,6 +4,23 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] — `rate`: grade your stack
+
+### Added
+
+- **`supstack rate [supplements...]`** — grade a stack **A–F** (and 0–100) by how
+  well it covers your goals, with a per-goal coverage bar and the gaps. Supplements
+  default to your local stack (`--cloud` for your synced stack, or pass slugs
+  explicitly). Goals come from `--goals`, else your account goals when signed in,
+  else they're inferred from the stack itself.
+- **MCP tool `supstack_rate_stack`** — the same grading exposed to agents (pass
+  `supplements` and/or `goals`, or omit to grade the local stack / infer goals).
+- Shell completion for `rate` — supplement slugs as positionals and goal ids
+  after `--goals`.
+
+Backed by the new public `GET /api/v1/stack/grade` endpoint, so the CLI grade
+matches the website's StackGradeCard exactly (one shared coverage algorithm).
+
 ## [0.10.1] — Consistent exit codes for CLI-usage errors
 
 ### Fixed

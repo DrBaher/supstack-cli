@@ -43,6 +43,12 @@ export const EXAMPLES: Record<string, string[]> = {
     'supstack stack remove caffeine',
     'supstack stack sync        # merge local + cloud (requires login)',
   ],
+  rate: [
+    'supstack rate                              # your local stack, goals inferred',
+    'supstack rate --goals deep-sleep,sharpen-focus',
+    'supstack rate magnesium l-theanine creatine --goals build-strength',
+    'supstack rate --cloud                      # your synced stack (requires login)',
+  ],
   export: ['supstack export', 'supstack export --json > my-stack.json'],
   define: ['supstack define bioavailability'],
   recommend: ['supstack recommend', 'supstack recommend --limit 5 --json'],

@@ -22,7 +22,11 @@ const SLUG_POSITIONS: Record<string, 'all' | number[]> = {
   research: [1],
   compare: [1, 2, 3],
   interactions: 'all', // variadic
+  rate: 'all', // variadic
 };
+
+/** Commands whose `--goals`/`--goal` flag value is a goal id. */
+const GOAL_FLAG_COMMANDS = new Set(['search', 'rate']);
 
 /** `<cmd> <action> <slug>` shapes — the slug is the 2nd positional. */
 const ACTION_THEN_SLUG: Record<string, string[]> = {
@@ -42,9 +46,12 @@ export function completeContext(words: string[]): CompletionContext {
   // First token → top-level command names.
   if (prior.length === 0) return { kind: 'commands' };
 
-  // A value for --goal/-g (search) → goal ids.
+  // A value for --goal(s)/-g (search, rate) → goal ids.
   const prevToken = prior[prior.length - 1];
-  if ((prevToken === '--goal' || prevToken === '-g') && prior[0] === 'search') {
+  if (
+    (prevToken === '--goal' || prevToken === '--goals' || prevToken === '-g') &&
+    GOAL_FLAG_COMMANDS.has(prior[0] ?? '')
+  ) {
     return { kind: 'goals' };
   }
 
