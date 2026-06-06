@@ -1,0 +1,58 @@
+name: Bump Homebrew formula
+
+# After a release, point the Homebrew tap (DrBaher/homebrew-supstack) at the new
+# npm tarball. Requires a repo secret HOMEBREW_TAP_TOKEN — a PAT / fine-grained
+# token with `contents: write` on the tap repo. If the secret is absent the job
+# no-ops (so forks and the initial setup don't fail).
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for tap token
+        id: gate
+        env:
+          TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo 'ok=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ok=false' >> "$GITHUB_OUTPUT"
+            echo 'HOMEBREW_TAP_TOKEN not set — skipping formula bump.'
+          fi
+
+      - name: Resolve version + sha256 (waits for the npm tarball)
+        if: steps.gate.outputs.ok == 'true'
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          URL="https://registry.npmjs.org/@supstack/cli/-/cli-${VERSION}.tgz"
+          for i in $(seq 1 30); do
+            if curl -sfL "$URL" -o pkg.tgz; then break; fi
+            echo "waiting for npm tarball (attempt $i)…"; sleep 10
+          done
+          SHA="$(sha256sum pkg.tgz | cut -d' ' -f1)"
+          {
+            echo "version=$VERSION"
+            echo "url=$URL"
+            echo "sha=$SHA"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update tap formula
+        if: steps.gate.outputs.ok == 'true'
+        env:
+          TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${TOKEN}@github.com/DrBaher/homebrew-supstack.git" tap
+          cd tap
+          sed -i -E "s#url \".*\"#url \"${{ steps.meta.outputs.url }}\"#" Formula/supstack.rb
+          sed -i -E "s#sha256 \".*\"#sha256 \"${{ steps.meta.outputs.sha }}\"#" Formula/supstack.rb
+          if git diff --quiet; then echo 'formula already up to date'; exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am "supstack ${{ steps.meta.outputs.version }}"
+          git push
