@@ -62,6 +62,15 @@ export const EXAMPLES: Record<string, string[]> = {
   'track adherence': ['supstack track adherence', 'supstack track adherence --days 7'],
   'experiments list': ['supstack experiments list', 'supstack experiments list --status active'],
   'experiments show': ['supstack experiments show 8b03297e   # full id or a unique prefix'],
+  'experiments protocol': ['supstack experiments protocol magnesium deep-sleep'],
+  'experiments start': [
+    'supstack experiments start magnesium deep-sleep            # shows the questions to answer',
+    'supstack experiments start magnesium deep-sleep --answer sleep-onset=25 --answer pre-sleep-alertness=4',
+  ],
+  'experiments check-in': [
+    'supstack experiments check-in 8b03297e                     # shows this check-in’s questions',
+    'supstack experiments check-in 8b03297e --answer sleep-onset=15 --answer compliance=yes',
+  ],
   'profile set': [
     'supstack profile set --age 35 --sex male --weight 80 --weight-unit kg',
     'supstack profile set --goals deep-sleep,focus --sleep-hours 7 --exercise 3-4',

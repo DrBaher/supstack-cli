@@ -187,10 +187,11 @@ export function buildProgram(): Command {
       await runAdherence(days, Boolean(opts.json) || Boolean(program.opts().json));
     });
 
-  // N-of-1 experiments (read). `experiments list` + `experiments show <id>`.
+  // N-of-1 experiments. Read (list/show/protocol) + write (start/check-in).
   const experiments = program
     .command('experiments')
-    .description('View your N-of-1 experiments (requires login)');
+    .description('Run your N-of-1 experiments — list, start, check-in (requires login)');
+  const collectAnswer = (v: string, acc: string[]): string[] => [...acc, v];
   experiments
     .command('list')
     .description('List your experiments')
@@ -208,6 +209,34 @@ export function buildProgram(): Command {
     .action(async (id: string, opts: Record<string, unknown>) => {
       const { runExperimentShow } = await import('./experiments');
       await runExperimentShow(id, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+  experiments
+    .command('protocol <supplement> <goal>')
+    .description('Preview the baseline + check-in questions for a supplement × goal')
+    .option('--json', 'output raw JSON')
+    .action(async (supplement: string, goal: string, opts: Record<string, unknown>) => {
+      const { runExperimentProtocol } = await import('./experiments');
+      await runExperimentProtocol(supplement, goal, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+  experiments
+    .command('start <supplement> <goal>')
+    .description('Start an experiment (no --answer shows the questions to answer)')
+    .option('-a, --answer <id=value>', 'baseline answer (repeatable)', collectAnswer, [])
+    .option('--json', 'output raw JSON')
+    .action(async (supplement: string, goal: string, opts: Record<string, unknown>) => {
+      const { runExperimentStart } = await import('./experiments');
+      const answers = Array.isArray(opts.answer) ? (opts.answer as string[]) : [];
+      await runExperimentStart(supplement, goal, answers, Boolean(opts.json) || Boolean(program.opts().json));
+    });
+  experiments
+    .command('check-in <id>')
+    .description('Submit a check-in (no --answer shows the questions to answer)')
+    .option('-a, --answer <id=value>', 'check-in answer (repeatable)', collectAnswer, [])
+    .option('--json', 'output raw JSON')
+    .action(async (id: string, opts: Record<string, unknown>) => {
+      const { runExperimentCheckIn } = await import('./experiments');
+      const answers = Array.isArray(opts.answer) ? (opts.answer as string[]) : [];
+      await runExperimentCheckIn(id, answers, Boolean(opts.json) || Boolean(program.opts().json));
     });
 
   // Personalized recommendations from the user's saved goals + cloud stack.
@@ -359,6 +388,10 @@ export function buildProgram(): Command {
     if (list) attachExamples(list, 'experiments list');
     const show = find(expCmd, 'show');
     if (show) attachExamples(show, 'experiments show');
+    for (const sub of ['protocol', 'start', 'check-in'] as const) {
+      const c = find(expCmd, sub);
+      if (c) attachExamples(c, `experiments ${sub}`);
+    }
   }
   const recommendCmd = find(program, 'recommend');
   if (recommendCmd) attachExamples(recommendCmd, 'recommend');

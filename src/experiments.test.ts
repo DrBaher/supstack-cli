@@ -5,7 +5,17 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotLoggedInError } from './cloud-stack';
-import { getExperiment, getExperiments, resolveExperimentId, runExperimentsList } from './experiments';
+import {
+  checkInExperiment,
+  getExperiment,
+  getExperimentProtocol,
+  getExperiments,
+  parseAnswers,
+  resolveExperimentId,
+  runExperimentsList,
+  runExperimentStart,
+  startExperiment,
+} from './experiments';
 
 function jsonRes(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as unknown as Response;
@@ -205,6 +215,94 @@ describe('experiments', () => {
     expect(out).toContain('4/4');
     expect(out).toContain('clear-win');
     expect(out).toContain('8b03297e'); // short id
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('experiments write', () => {
+  it('parseAnswers parses id=value and rejects malformed input', () => {
+    expect(parseAnswers(['sleep-onset=25', 'mood=good'])).toEqual({ 'sleep-onset': '25', mood: 'good' });
+    expect(parseAnswers(['notes=a=b'])).toEqual({ notes: 'a=b' }); // only first =
+    expect(() => parseAnswers(['bogus'])).toThrow(/id=value/);
+    expect(() => parseAnswers(['=novalue'])).toThrow();
+  });
+
+  it('startExperiment POSTs supplement+goal+answers with the Bearer token', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        jsonRes({ data: { id: 'e1', status: 'active', progress: { completed: 0, expected: 4 } } }),
+      );
+    await startExperiment(
+      'magnesium',
+      'deep-sleep',
+      { 'sleep-onset': '25' },
+      fetchImpl as unknown as typeof fetch,
+    );
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toContain('/me/experiments');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual({
+      supplement: 'magnesium',
+      goal: 'deep-sleep',
+      answers: { 'sleep-onset': '25' },
+    });
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer sct_live_x');
+  });
+
+  it('checkInExperiment POSTs to the check-in endpoint', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        jsonRes({
+          data: { id: 'e1', status: 'active', checkInNumber: 1, progress: { completed: 1, expected: 4 } },
+        }),
+      );
+    await checkInExperiment('e1', { 'sleep-onset': '15' }, fetchImpl as unknown as typeof fetch);
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toContain('/me/experiments/e1/check-in');
+    expect(init.method).toBe('POST');
+  });
+
+  it('getExperimentProtocol GETs the protocol endpoint with both params', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonRes({ data: { baselineQuestions: [], checkInQuestions: [] } }));
+    await getExperimentProtocol('magnesium', 'deep-sleep', fetchImpl as unknown as typeof fetch);
+    const [url] = fetchImpl.mock.calls[0] as [string];
+    expect(String(url)).toContain('/me/experiments/protocol?supplement=magnesium&goal=deep-sleep');
+  });
+
+  it('runExperimentStart with no --answer shows the baseline questions (does not create)', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonRes({
+        data: {
+          supplement: { id: 'magnesium', name: 'Magnesium', slug: 'magnesium' },
+          goal: { id: 'deep-sleep', name: 'Deep sleep' },
+          dosing: { dose: '400mg', timing: 'bedtime' },
+          schedule: { totalCheckIns: 4 },
+          baselineQuestions: [
+            { id: 'sleep-onset', text: 'Onset?', type: 'number', category: 'primary', required: true },
+          ],
+          checkInQuestions: [],
+        },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const out = await captureStdout(() => runExperimentStart('magnesium', 'deep-sleep', [], false));
+    expect(out).toContain('Baseline questions');
+    expect(out).toContain('sleep-onset');
+    // It previewed, not created — only the protocol GET happened.
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/protocol');
+    expect(
+      fetchMock.mock.calls.every(
+        (c) => !String((c[1] as RequestInit)?.method) || (c[1] as RequestInit).method !== 'POST',
+      ),
+    ).toBe(true);
     vi.unstubAllGlobals();
   });
 });

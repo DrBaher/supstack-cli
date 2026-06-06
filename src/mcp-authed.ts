@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import { getExperiment, getExperiments } from './experiments';
+import {
+  checkInExperiment,
+  getExperiment,
+  getExperimentProtocol,
+  getExperiments,
+  startExperiment,
+} from './experiments';
 import { getProfile, setProfile } from './profile';
 import { getRecommendations } from './recommend';
 import { getAdherence, logIntake } from './track';
@@ -129,5 +135,35 @@ export const AUTHED_TOOLS: AuthedTool[] = [
       REQUIRES_LOGIN,
     schema: z.object({ days: z.number().int().min(1).max(365).default(30) }),
     handler: (input) => getAdherence(input.days),
+  }),
+  tool({
+    name: 'supstack_experiment_protocol',
+    description:
+      'Preview the N-of-1 protocol for a supplement × goal WITHOUT starting it: the dosing, schedule, and the baseline + check-in questions (with their ids, types, and options). Call this first so you know which questions to answer before `supstack_experiment_start`. Supplement is a slug, goal is a goal id (see supstack_goals).' +
+      REQUIRES_LOGIN,
+    schema: z.object({ supplement: z.string().min(1), goal: z.string().min(1) }),
+    handler: (input) => getExperimentProtocol(input.supplement, input.goal),
+  }),
+  tool({
+    name: 'supstack_experiment_start',
+    description:
+      "Start an N-of-1 experiment for the signed-in user. `answers` maps baseline question ids (from supstack_experiment_protocol) to the user's answers. If required baseline answers are missing, returns a 400 listing them — gather those and retry. Returns the created experiment with its first check-in date." +
+      REQUIRES_LOGIN,
+    mutates: true,
+    schema: z.object({
+      supplement: z.string().min(1),
+      goal: z.string().min(1),
+      answers: z.record(z.string(), z.unknown()).default({}),
+    }),
+    handler: (input) => startExperiment(input.supplement, input.goal, input.answers),
+  }),
+  tool({
+    name: 'supstack_experiment_check_in',
+    description:
+      "Submit a check-in for one of the signed-in user's experiments. `answers` maps the experiment's check-in question ids to the user's answers (get the questions from supstack_experiments_get → protocol.checkIn.questions, or supstack_experiment_protocol). On the FINAL check-in the verdict is computed and returned. The check-in number is derived server-side." +
+      REQUIRES_LOGIN,
+    mutates: true,
+    schema: z.object({ id: z.string().min(1), answers: z.record(z.string(), z.unknown()).default({}) }),
+    handler: (input) => checkInExperiment(input.id, input.answers),
   }),
 ];
