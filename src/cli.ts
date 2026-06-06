@@ -286,13 +286,15 @@ export function buildProgram(): Command {
       process.stdout.write(`${cachePath()}\n`);
     });
 
-  // Shell completion: `completion <shell>` prints the script; `completion refresh`
-  // warms the dynamic-value cache (supplement slugs + goal ids).
+  // Shell completion: `completion <shell>` prints the script; `completion install`
+  // wires it into your shell; `completion refresh` warms the dynamic-value cache.
   program
-    .command('completion [shell]')
-    .description('Print a shell completion script (bash | zsh | fish), or `refresh` the value cache')
-    .action(async (shell?: string) => {
-      if (shell === 'refresh') {
+    .command('completion [action]')
+    .description(
+      'Shell completion: print a script (bash|zsh|fish), `install`/`uninstall` it, or `refresh` the cache',
+    )
+    .action(async (action?: string) => {
+      if (action === 'refresh') {
         const counts = await warmCompletionCache();
         process.stdout.write(
           dim('Refreshed completion cache: ') +
@@ -300,7 +302,38 @@ export function buildProgram(): Command {
         );
         return;
       }
-      const target = shell ?? process.env.SHELL?.split('/').pop() ?? 'bash';
+      if (action === 'install' || action === 'uninstall') {
+        const detected = process.env.SHELL?.split('/').pop() ?? '';
+        if (!isShell(detected)) {
+          process.stderr.write(
+            red(`Could not detect your shell from $SHELL (got "${detected || 'empty'}").`) +
+              ' Print the script directly instead: `supstack completion <bash|zsh|fish>`.\n',
+          );
+          process.exitCode = 1;
+          return;
+        }
+        const { installCompletion, uninstallCompletion } = await import('./completion-install');
+        if (action === 'uninstall') {
+          const { removed } = uninstallCompletion(detected);
+          process.stdout.write(
+            removed.length
+              ? `Removed ${detected} completion:\n` + removed.map((r) => `  ${dim(r)}`).join('\n') + '\n'
+              : dim(`Nothing to remove for ${detected}.\n`),
+          );
+          return;
+        }
+        const r = installCompletion(detected);
+        const lines = [
+          r.alreadyWired ? `${detected} completion already installed.` : `Installed ${detected} completion.`,
+          `  script: ${dim(r.scriptPath)}`,
+          ...(r.rcPath ? [`  wired:  ${dim(r.rcPath)}`] : []),
+          dim(`Activate it now: ${r.reload}`),
+          dim('Pre-warm slug/goal completion with: supstack completion refresh'),
+        ];
+        process.stdout.write(lines.join('\n') + '\n');
+        return;
+      }
+      const target = action ?? process.env.SHELL?.split('/').pop() ?? 'bash';
       if (!isShell(target)) {
         process.stderr.write(red(`Unsupported shell: ${target}`) + ' (expected bash, zsh, or fish)\n');
         process.exitCode = 1;

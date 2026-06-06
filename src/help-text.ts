@@ -15,7 +15,7 @@ export const SUBCOMMANDS: Record<string, string[]> = {
   profile: ['set', 'clear'],
   auth: ['set-key'],
   cache: ['clear', 'path'],
-  completion: ['bash', 'zsh', 'fish', 'refresh'],
+  completion: ['bash', 'zsh', 'fish', 'install', 'uninstall', 'refresh'],
 };
 
 /**

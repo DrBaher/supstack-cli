@@ -133,7 +133,14 @@ command with `--no-cache`, or manage it with `supstack cache clear` /
 
 ### Shell completion
 
-Generate a completion script for your shell:
+One-step install for your current shell (writes the script and wires your rc file
+idempotently; `uninstall` reverses it):
+
+```bash
+supstack completion install      # detects bash | zsh | fish from $SHELL
+```
+
+…or generate the script yourself:
 
 ```bash
 supstack completion bash >> ~/.bashrc

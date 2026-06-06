@@ -4,6 +4,15 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] — One-step completion install
+
+### Added
+
+- **`supstack completion install`** — detects your shell from `$SHELL`, writes the
+  completion script, and wires your rc file with a single marked, idempotent
+  `source` block (fish needs no rc edit — it auto-loads). **`completion uninstall`**
+  removes it cleanly, preserving the rest of your rc file.
+
 ## [0.13.0] — `goals`: discover goal ids
 
 ### Added
