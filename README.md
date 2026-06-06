@@ -165,7 +165,7 @@ kind of failure:
 | `3` | Not found (404) |
 | `4` | Rate limited (429) |
 | `5` | Network failure / timeout |
-| `6` | Invalid input (bad args, 400/422) |
+| `6` | Invalid input (bad/missing args or flags, unknown command, schema validation, 400/422) |
 
 ## Develop
 

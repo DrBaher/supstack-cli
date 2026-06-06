@@ -4,6 +4,17 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] — Consistent exit codes for CLI-usage errors
+
+### Fixed
+
+- Commander's own usage errors (unknown command, unknown/missing option, missing
+  or excess arguments) now exit with **`6` (invalid input)** — the same code as a
+  schema validation error — instead of a generic `1`. `--help` / `--version` still
+  exit `0`, and bare `supstack` (no command) still shows help and exits `1`. Closes
+  a gap where a script branching on exit codes saw `6` for some bad-input cases and
+  `1` for others.
+
 ## [0.10.0] — Authenticated MCP tools + colour polish
 
 ### Added

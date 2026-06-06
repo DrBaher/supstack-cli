@@ -1,3 +1,4 @@
+import { CommanderError } from 'commander';
 import { ZodError } from 'zod';
 
 import { NotLoggedInError } from './cloud-stack';
@@ -35,6 +36,20 @@ export type ExitCode = (typeof EXIT)[keyof typeof EXIT];
 export function exitCodeFor(err: unknown): ExitCode {
   if (err instanceof NotLoggedInError) return EXIT.AUTH;
   if (err instanceof ZodError) return EXIT.INVALID_INPUT;
+  if (err instanceof CommanderError) {
+    // commander surfaces --help/--version (and bare no-command help) as "errors"
+    // too; those carry their own exit code (0, or 1 for no-command). Genuine
+    // CLI-misuse (unknown command/option, missing/excess args) is bad input → 6,
+    // matching the ZodError branch so every bad-input path exits the same way.
+    if (
+      err.code === 'commander.helpDisplayed' ||
+      err.code === 'commander.version' ||
+      err.code === 'commander.help'
+    ) {
+      return err.exitCode as ExitCode;
+    }
+    return EXIT.INVALID_INPUT;
+  }
   if (err instanceof ApiError) {
     switch (err.status) {
       case 0:
