@@ -49,6 +49,7 @@ export const EXAMPLES: Record<string, string[]> = {
     'supstack rate magnesium l-theanine creatine --goals build-strength',
     'supstack rate --cloud                      # your synced stack (requires login)',
   ],
+  goals: ['supstack goals', 'supstack goals sleep', 'supstack goals --category mental'],
   export: ['supstack export', 'supstack export --json > my-stack.json'],
   define: ['supstack define bioavailability'],
   recommend: ['supstack recommend', 'supstack recommend --limit 5 --json'],
