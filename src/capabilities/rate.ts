@@ -12,6 +12,8 @@ const GradeResponse = z.object({
   data: z.object({
     letter: z.enum(['A', 'B', 'C', 'D', 'F']),
     score: z.number(),
+    ratingLabel: z.string().default(''),
+    summary: z.string().default(''),
     verdict: z.string(),
     goalsSource: z.enum(['provided', 'inferred']),
     goals: z.array(
@@ -64,7 +66,8 @@ export const rate = defineCapability({
   mcp: {
     toolName: 'supstack_rate_stack',
     description:
-      "Grade a supplement stack A–F (and 0–100) by how well it covers a set of goals, with a per-goal coverage breakdown and the gaps. Pass `supplements` (slugs) to grade a specific list; omit to grade the user's saved local stack. Pass `goals` (goal ids) to grade against them; omit to use the user's account goals when signed in, otherwise the goals are inferred from the stack.",
+      "Grade a supplement stack A–F (and 0–100) by how well it covers a set of goals, with a per-goal coverage breakdown and the gaps. Pass `supplements` (slugs) to grade a specific list; omit to grade the user's saved local stack. Pass `goals` (goal ids) to grade against them; omit to use the user's account goals when signed in, otherwise the goals are inferred from the stack. " +
+      "When relaying the result to a user, use the response's plain-language `summary` field (it explains what the score and letter mean) rather than the bare `score`/`letter`. Always tell the user whether goals were given or inferred (`goalsSource`), and that they can pass their own `goals` to get a score tailored to them.",
   },
   handler: async (input): Promise<GradeData> => {
     // Supplements: explicit list → cloud stack → local stack.
@@ -122,18 +125,28 @@ function bar(coverage: number): string {
   return '█'.repeat(filled) + dim('░'.repeat(10 - filled));
 }
 
+/** Plain word for a letter — fallback if an older API omits `ratingLabel`. */
+const RATING_FALLBACK: Record<GradeData['letter'], string> = {
+  A: 'Excellent',
+  B: 'Strong',
+  C: 'Fair',
+  D: 'Weak',
+  F: 'Poor',
+};
+
 function renderGrade(d: GradeData): string {
   const out: string[] = [];
-  out.push(`${bold('Stack grade:')} ${letterColor(d.letter)}  ${dim(`(${d.score}/100)`)}`);
-  out.push(d.verdict);
+  const word = (d.ratingLabel || RATING_FALLBACK[d.letter]).toLowerCase();
+  // Headline that makes the letter + number meaningful on their own, and flags
+  // inferred goals right at the score, e.g.
+  // "Stack grade: D · 41/100 · weak match for inferred goals".
+  const forWhat = d.goalsSource === 'provided' ? 'for your goals' : 'for inferred goals';
   out.push(
-    dim(
-      d.goalsSource === 'provided'
-        ? `Graded against ${d.goals.length} goal${d.goals.length === 1 ? '' : 's'}.`
-        : 'Goals inferred from your stack — pass --goals to choose your own.',
-    ),
+    `${bold('Stack grade:')} ${letterColor(d.letter)}  ${dim('·')}  ${dim(`${d.score}/100`)}  ${dim('·')}  ${word} match ${forWhat}`,
   );
+  out.push(d.verdict);
   out.push('');
+
   for (const g of d.goals) {
     const covered = g.coveredBy ? dim(g.coveredBy) : dim('—');
     out.push(`  ${g.name.padEnd(28)} ${bar(g.coverage)} ${labelColor(g.label).padEnd(8)} ${covered}`);
@@ -141,6 +154,18 @@ function renderGrade(d: GradeData): string {
   if (d.gaps.length) {
     out.push('');
     out.push(dim(`Gaps: ${d.gaps.map((g) => g.name).join(', ')} — nothing in your stack covers that well.`));
+  }
+
+  // Always make the inferred-vs-given distinction explicit and actionable.
+  out.push('');
+  if (d.goalsSource === 'inferred') {
+    out.push(yellow('⚠ These goals were inferred from your stack, not chosen by you:'));
+    out.push(`  ${d.goals.map((g) => g.name).join(', ')}`);
+    out.push(
+      dim('  Pass --goals <id,id> (e.g. --goals deep-sleep,sharpen-focus) to score against your own goals.'),
+    );
+  } else {
+    out.push(dim(`Graded against the goals you gave: ${d.goals.map((g) => g.name).join(', ')}.`));
   }
   if (d.unknownSupplements.length) {
     out.push(dim(`Skipped unknown: ${d.unknownSupplements.join(', ')}`));
