@@ -38,6 +38,7 @@ supstack stack add magnesium                 # local stack (add | remove | list)
 supstack stack sync                          # sync local ⇄ your account (login required)
 supstack goals --category sleep              # list goal ids (for rate/recommend)
 supstack rate --goals deep-sleep,sharpen-focus   # grade your stack A–F by goal coverage
+supstack experiments start magnesium deep-sleep  # run an N-of-1 experiment (requires login)
 supstack export --format md                  # export your stack
 supstack define bioavailability              # glossary lookup
 supstack <command> --json                    # machine-readable output on any command

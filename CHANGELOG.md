@@ -4,6 +4,26 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] — Experiments: run the full N-of-1 loop
+
+### Added
+
+- **`supstack experiments start <supplement> <goal>`** — start an N-of-1
+  experiment. With no `--answer`, it prints the baseline questions to answer; with
+  `--answer id=value` flags it creates the experiment (and reports any still-missing
+  required answers).
+- **`supstack experiments check-in <id>`** — submit a check-in (`--answer id=value`,
+  repeatable). With no answers it shows that check-in's questions. On the final
+  check-in it prints the computed **verdict**.
+- **`supstack experiments protocol <supplement> <goal>`** — preview the dosing,
+  schedule, and baseline + check-in questions without starting anything.
+- **MCP tools** `supstack_experiment_protocol`, `supstack_experiment_start`,
+  `supstack_experiment_check_in` — agents can now drive the whole loop (preview →
+  start with baseline → check in → verdict). Server now exposes 20 tools.
+
+Backed by new public write endpoints (`POST /me/experiments`,
+`/me/experiments/[id]/check-in`, `GET /me/experiments/protocol`).
+
 ## [0.15.0] — `interactions --medication`: supplement × drug checks
 
 ### Added
