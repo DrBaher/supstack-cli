@@ -4,6 +4,13 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.1] — Docs: list `supstack_rate_stack` in the MCP toolset
+
+### Docs
+
+- README's MCP read-only tool list now includes `supstack_rate_stack` (added in
+  0.11.0). No code change.
+
 ## [0.11.0] — `rate`: grade your stack
 
 ### Added
