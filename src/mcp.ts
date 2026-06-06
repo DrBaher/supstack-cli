@@ -5,6 +5,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { z, ZodError } from 'zod';
 
 import { DISCLAIMER } from './constants';
+import { AUTHED_TOOLS } from './mcp-authed';
 import { capabilities } from './registry';
 import { VERSION } from './version';
 
@@ -24,7 +25,10 @@ export function formatToolError(err: unknown): string {
 /** Sent to the agent on initialize — frames what SupStack is and the wellness disclaimer. */
 const SERVER_INSTRUCTIONS =
   'SupStack exposes evidence-based supplement data (research, search, compare, studies, ' +
-  'interactions, stack, export, define) over the public SupStack API. ' +
+  'interactions, stack, export, define) over the public SupStack API. Account-scoped tools ' +
+  '(recommend, profile, experiments, adherence, and cloud stack pull/push/sync) require the ' +
+  'user to be signed in via `supstack login`; if they are not, the tool returns a clear ' +
+  '"not logged in" error. ' +
   DISCLAIMER +
   ' Present findings as evidence ("studies have examined X for Y"), not as instructions to ' +
   'take or stop a supplement, and route out-of-range or clinical questions to a provider.';
@@ -48,35 +52,52 @@ export function buildMcpServer(): Server {
     { capabilities: { tools: {} }, instructions: SERVER_INSTRUCTIONS },
   );
 
+  const toJsonSchema = (schema: z.ZodTypeAny): { type: 'object'; [k: string]: unknown } =>
+    z.toJSONSchema(schema, { io: 'input' }) as { type: 'object'; [k: string]: unknown };
+
   server.setRequestHandler(ListToolsRequestSchema, () => ({
-    tools: capabilities.map((cap) => ({
-      name: cap.mcp.toolName,
-      description: cap.mcp.description,
-      inputSchema: z.toJSONSchema(cap.inputSchema, { io: 'input' }) as {
-        type: 'object';
-        [k: string]: unknown;
-      },
-      annotations: {
-        // Hints for the agent. Only the local-stack tool mutates state; the rest
-        // are read-only API lookups that reach an external service.
-        readOnlyHint: cap.mcp.mutates !== true,
-        openWorldHint: true,
-      },
-    })),
+    tools: [
+      ...capabilities.map((cap) => ({
+        name: cap.mcp.toolName,
+        description: cap.mcp.description,
+        inputSchema: toJsonSchema(cap.inputSchema),
+        annotations: {
+          // Hints for the agent. Only the local-stack tool mutates state; the rest
+          // are read-only API lookups that reach an external service.
+          readOnlyHint: cap.mcp.mutates !== true,
+          openWorldHint: true,
+        },
+      })),
+      ...AUTHED_TOOLS.map((t) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: toJsonSchema(t.schema),
+        annotations: { readOnlyHint: t.mutates !== true, openWorldHint: true },
+      })),
+    ],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const args = request.params.arguments ?? {};
     const cap = capabilities.find((c) => c.mcp.toolName === request.params.name);
-    if (!cap) {
-      return { isError: true, content: [{ type: 'text', text: `Unknown tool: ${request.params.name}` }] };
+    if (cap) {
+      try {
+        const output = await cap.handler(cap.inputSchema.parse(args));
+        return { content: [{ type: 'text', text: JSON.stringify(cap.format.json(output), null, 2) }] };
+      } catch (err) {
+        return { isError: true, content: [{ type: 'text', text: formatToolError(err) }] };
+      }
     }
-    try {
-      const input = cap.inputSchema.parse(request.params.arguments ?? {});
-      const output = await cap.handler(input);
-      return { content: [{ type: 'text', text: JSON.stringify(cap.format.json(output), null, 2) }] };
-    } catch (err) {
-      return { isError: true, content: [{ type: 'text', text: formatToolError(err) }] };
+    const authed = AUTHED_TOOLS.find((t) => t.name === request.params.name);
+    if (authed) {
+      try {
+        const output = await authed.handler(authed.schema.parse(args));
+        return { content: [{ type: 'text', text: JSON.stringify(output, null, 2) }] };
+      } catch (err) {
+        return { isError: true, content: [{ type: 'text', text: formatToolError(err) }] };
+      }
     }
+    return { isError: true, content: [{ type: 'text', text: `Unknown tool: ${request.params.name}` }] };
   });
 
   return server;

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { defineCapability } from '../capability';
 import { apiGet } from '../http';
-import { bold, cyan, dim, yellow } from '../output';
+import { bold, dim, green, yellow } from '../output';
 
 // ─── Standard mode (?supplements=a,b[,c]) ────────────────────────────────────
 const StandardResponse = z.object({
@@ -67,7 +67,7 @@ const InputSchema = z.object({
 function severityColor(severity: string): string {
   const s = severity.toLowerCase();
   if (s === 'caution' || s === 'negative') return yellow(severity);
-  if (s === 'positive') return cyan(severity);
+  if (s === 'positive') return green(severity);
   return dim(severity);
 }
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { defineCapability } from '../capability';
 import { apiGet } from '../http';
-import { bold, dim } from '../output';
+import { bold, dim, green, yellow } from '../output';
 
 /** Map a categorical evidence level to the API's numeric `minEvidence` threshold. */
 const EVIDENCE_MIN: Record<string, number> = {
@@ -126,7 +126,9 @@ export const search = defineCapability({
         .map((h) => {
           const meta: string[] = [dim(h.type)];
           if (h.evidenceScore !== undefined) {
-            meta.push(`evidence ${h.evidenceScore}/10${h.evidenceLevel ? ` (${h.evidenceLevel})` : ''}`);
+            const s = `${h.evidenceScore}/10`;
+            const score = h.evidenceScore >= 8 ? green(s) : h.evidenceScore < 4 ? yellow(s) : s;
+            meta.push(`evidence ${score}${h.evidenceLevel ? ` (${h.evidenceLevel})` : ''}`);
           }
           if (h.safety) meta.push(`safety: ${h.safety}`);
           if (h.matchScore !== undefined) meta.push(dim(`match ${h.matchScore}`));
