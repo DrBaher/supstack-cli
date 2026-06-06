@@ -67,7 +67,7 @@ export const rate = defineCapability({
     toolName: 'supstack_rate_stack',
     description:
       "Grade a supplement stack A–F (and 0–100) by how well it covers a set of goals, with a per-goal coverage breakdown and the gaps. Pass `supplements` (slugs) to grade a specific list; omit to grade the user's saved local stack. Pass `goals` (goal ids) to grade against them; omit to use the user's account goals when signed in, otherwise the goals are inferred from the stack. " +
-      "When relaying the result to a user, use the response's plain-language `summary` field (it explains what the score and letter mean) rather than the bare `score`/`letter`. Always tell the user whether goals were given or inferred (`goalsSource`), and that they can pass their own `goals` to get a score tailored to them.",
+      "When relaying the result to a user, use the response's plain-language `summary` field (it explains what the score and letter mean) rather than the bare `score`/`letter`. Always tell the user whether goals were given or inferred (`goalsSource`), and that they can pass their own `goals` to get a score tailored to them. To turn a user's plain-language goals into the `goals` ids this tool expects, call `supstack_goals` first.",
   },
   handler: async (input): Promise<GradeData> => {
     // Supplements: explicit list → cloud stack → local stack.

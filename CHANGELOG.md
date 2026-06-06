@@ -4,6 +4,17 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] — `goals`: discover goal ids
+
+### Added
+
+- **`supstack goals [query] [--category <id>]`** — list the health goal ids (with
+  names, grouped by category) that `rate` and `recommend` expect. Filter by a
+  free-text query or a category.
+- **MCP tool `supstack_goals`** — lets an agent map a user's plain-language goal
+  ("sleep better") to the correct id before calling `supstack_rate_stack` /
+  `supstack_recommend`. The `rate` tool description now points agents to it.
+
 ## [0.12.0] — Clearer `rate` output: what the grade means + inferred-goal flag
 
 ### Changed

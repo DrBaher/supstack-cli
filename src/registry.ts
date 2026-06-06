@@ -1,6 +1,7 @@
 import { compare } from './capabilities/compare';
 import { define } from './capabilities/define';
 import { exportStack } from './capabilities/export';
+import { goals } from './capabilities/goals';
 import { interactions } from './capabilities/interactions';
 import { rate } from './capabilities/rate';
 import { research } from './capabilities/research';
@@ -23,6 +24,7 @@ export const capabilities: AnyCapability[] = [
   interactions,
   stack,
   rate,
+  goals,
   exportStack,
   define,
 ];
