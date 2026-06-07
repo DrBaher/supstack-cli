@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+  abandonExperiment,
   checkInExperiment,
   getExperiment,
   getExperimentProtocol,
@@ -165,5 +166,14 @@ export const AUTHED_TOOLS: AuthedTool[] = [
     mutates: true,
     schema: z.object({ id: z.string().min(1), answers: z.record(z.string(), z.unknown()).default({}) }),
     handler: (input) => checkInExperiment(input.id, input.answers),
+  }),
+  tool({
+    name: 'supstack_experiment_abandon',
+    description:
+      "Stop one of the signed-in user's in-progress experiments (sets it to 'abandoned' — no verdict). A completed or already-abandoned experiment is rejected." +
+      REQUIRES_LOGIN,
+    mutates: true,
+    schema: z.object({ id: z.string().min(1) }),
+    handler: (input) => abandonExperiment(input.id),
   }),
 ];

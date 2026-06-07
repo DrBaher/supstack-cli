@@ -238,6 +238,14 @@ export function buildProgram(): Command {
       const answers = Array.isArray(opts.answer) ? (opts.answer as string[]) : [];
       await runExperimentCheckIn(id, answers, Boolean(opts.json) || Boolean(program.opts().json));
     });
+  experiments
+    .command('abandon <id>')
+    .description('Stop an in-progress experiment (no verdict)')
+    .option('--json', 'output raw JSON')
+    .action(async (id: string, opts: Record<string, unknown>) => {
+      const { runExperimentAbandon } = await import('./experiments');
+      await runExperimentAbandon(id, Boolean(opts.json) || Boolean(program.opts().json));
+    });
 
   // Personalized recommendations from the user's saved goals + cloud stack.
   program
@@ -388,7 +396,7 @@ export function buildProgram(): Command {
     if (list) attachExamples(list, 'experiments list');
     const show = find(expCmd, 'show');
     if (show) attachExamples(show, 'experiments show');
-    for (const sub of ['protocol', 'start', 'check-in'] as const) {
+    for (const sub of ['protocol', 'start', 'check-in', 'abandon'] as const) {
       const c = find(expCmd, sub);
       if (c) attachExamples(c, `experiments ${sub}`);
     }

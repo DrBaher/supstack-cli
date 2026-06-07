@@ -378,3 +378,30 @@ export async function runExperimentCheckIn(
     if (r.nextCheckInDate) out(dim(`  Next check-in: ${date(r.nextCheckInDate)}`));
   }
 }
+
+interface AbandonResult {
+  id: string;
+  status: string;
+  supplement: { slug: string; name: string };
+  goal: { id: string; name: string };
+}
+
+export async function abandonExperiment(id: string, fetchImpl?: typeof fetch): Promise<AbandonResult> {
+  const res = await apiPost<{ data: AbandonResult }>(
+    `/me/experiments/${encodeURIComponent(id)}/abandon`,
+    undefined,
+    { bearer: requireToken(), fetchImpl },
+  );
+  return res.data;
+}
+
+/** `supstack experiments abandon <id>` (accepts the short id from `list`) */
+export async function runExperimentAbandon(idOrPrefix: string, asJson: boolean): Promise<void> {
+  const id = await resolveExperimentId(idOrPrefix);
+  const r = await abandonExperiment(id);
+  if (asJson) {
+    out(JSON.stringify({ experiment: r }, null, 2));
+    return;
+  }
+  out(yellow('Abandoned') + dim(` — ${r.supplement.name} × ${r.goal.name} (won't count toward a verdict).`));
+}
