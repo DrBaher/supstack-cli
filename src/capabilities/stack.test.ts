@@ -73,7 +73,7 @@ describe('stack sync (capability)', () => {
 
     const res = await stack.handler({ action: 'sync' });
     const union = new Set(['magnesium', 'glycine', 'l-theanine']);
-    expect(new Set(res.stack)).toEqual(union); // returned
+    expect(new Set(res.stack.map((i) => i.slug))).toEqual(union); // returned
     expect(new Set(pushedItems.map((i) => i.slug))).toEqual(union); // membership unioned
     expect(new Set(readStack())).toEqual(union); // mirrored locally
     // glycine's existing dosage survived (not flattened to a bare slug).
@@ -109,15 +109,52 @@ describe('stack sync (capability)', () => {
     await stack.handler({ action: 'push' });
     // membership = local exactly (l-theanine dropped, magnesium added)
     expect(new Set(pushedItems.map((i) => i.slug))).toEqual(new Set(['magnesium', 'glycine']));
-    // glycine kept its metadata; magnesium added bare
+    // glycine kept its metadata; magnesium added with no dosage
     expect(pushedItems.find((i) => i.slug === 'glycine')?.dosage).toBe('3g');
-    expect(pushedItems.find((i) => i.slug === 'magnesium')?.dosage).toBeUndefined();
+    expect(pushedItems.find((i) => i.slug === 'magnesium')?.dosage).toBeFalsy();
   });
 
   it('list works offline (no token required)', async () => {
     delete process.env.SUPSTACK_TOKEN;
     addToStack('magnesium');
     const res = await stack.handler({ action: 'list' });
-    expect(res.stack).toEqual(['magnesium']);
+    expect(res.stack.map((i) => i.slug)).toEqual(['magnesium']);
+  });
+
+  it('add carries dose/timing/brand metadata into list', async () => {
+    delete process.env.SUPSTACK_TOKEN;
+    await stack.handler({ action: 'add', slug: 'Magnesium', dose: '400mg', timing: 'bedtime' });
+    const res = await stack.handler({ action: 'list' });
+    expect(res.stack[0]).toEqual({ slug: 'magnesium', dosage: '400mg', timing: 'bedtime' });
+    // Re-adding merges new metadata without losing the rest.
+    await stack.handler({ action: 'add', slug: 'magnesium', brand: 'Acme' });
+    const after = await stack.handler({ action: 'list' });
+    expect(after.stack[0]).toEqual({ slug: 'magnesium', dosage: '400mg', timing: 'bedtime', brand: 'Acme' });
+  });
+
+  it('pull preserves cloud metadata locally (brandName → brand)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonRes({
+          data: {
+            stackId: 's1',
+            name: 'My Stack',
+            supplements: [
+              {
+                slug: 'magnesium',
+                dosage: '300mg',
+                timing: 'PM',
+                notes: null,
+                brandName: 'Acme',
+                position: 0,
+              },
+            ],
+          },
+        }),
+      ),
+    );
+    const res = await stack.handler({ action: 'pull' });
+    expect(res.stack[0]).toEqual({ slug: 'magnesium', dosage: '300mg', timing: 'PM', brand: 'Acme' });
   });
 });

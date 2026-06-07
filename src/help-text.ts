@@ -41,8 +41,9 @@ export const EXAMPLES: Record<string, string[]> = {
   stack: [
     'supstack stack list',
     'supstack stack add magnesium',
+    'supstack stack add magnesium --dose 400mg --timing bedtime --brand Acme',
     'supstack stack remove caffeine',
-    'supstack stack sync        # merge local + cloud (requires login)',
+    'supstack stack sync        # merge local + cloud, with metadata (requires login)',
   ],
   rate: [
     'supstack rate                              # your local stack, goals inferred',

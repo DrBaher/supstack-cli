@@ -34,7 +34,7 @@ supstack compare magnesium glycine           # 2–3 head-to-head
 supstack studies "sleep" --type rct          # research library
 supstack interactions caffeine l-theanine --pathway   # interaction check (deep pair analysis)
 supstack interactions magnesium potassium --medication lisinopril   # supplement × drug check
-supstack stack add magnesium                 # local stack (add | remove | list)
+supstack stack add magnesium --dose 400mg --timing bedtime   # local stack (+ dose/timing/brand)
 supstack stack sync                          # sync local ⇄ your account (login required)
 supstack goals --category sleep              # list goal ids (for rate/recommend)
 supstack rate --goals deep-sleep,sharpen-focus   # grade your stack A–F by goal coverage

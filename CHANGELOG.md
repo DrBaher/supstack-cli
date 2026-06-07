@@ -4,6 +4,26 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] — Stack metadata (dose / timing / brand)
+
+### Added
+
+- **`supstack stack add <slug> --dose --timing --brand`** — the local stack now
+  carries per-supplement metadata, shown in `stack list` (e.g. `magnesium  400mg ·
+  bedtime · Acme`). Re-adding a supplement merges new metadata without clobbering
+  the rest.
+- **`pull` / `push` / `sync` preserve metadata** both ways — local dose/timing/brand
+  map to the cloud's dosage/timing/brandName and back.
+- The `supstack_stack` MCP tool gains the same `dose`/`timing`/`brand` on `add`.
+
+### Changed
+
+- The local stack file format is now `{ supplements: [{ slug, dosage?, timing?,
+  brand? }] }`. **Legacy slug-only files (`["magnesium", …]`) still read** and are
+  upgraded in place on the next write — no migration needed.
+- `stack list --json` (and the `supstack_stack` result) now returns objects
+  (`{ slug, dosage?, … }`) instead of bare slug strings.
+
 ## [0.16.0] — Experiments: run the full N-of-1 loop
 
 ### Added
