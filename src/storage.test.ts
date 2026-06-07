@@ -33,7 +33,7 @@ describe('local stack storage', () => {
   it('removes a slug', () => {
     addToStack('magnesium');
     addToStack('glycine');
-    expect(removeFromStack('magnesium')).toEqual(['glycine']);
+    expect(removeFromStack('magnesium').map((i) => i.slug)).toEqual(['glycine']);
     expect(readStack()).toEqual(['glycine']);
   });
 
