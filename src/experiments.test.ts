@@ -307,18 +307,16 @@ describe('experiments write', () => {
 
   it('abandonExperiment POSTs to the abandon endpoint with the Bearer token', async () => {
     process.env.SUPSTACK_TOKEN = 'sct_live_x';
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(
-        jsonRes({
-          data: {
-            id: 'e1',
-            status: 'abandoned',
-            supplement: { slug: 'magnesium', name: 'Magnesium' },
-            goal: { id: 'deep-sleep', name: 'Deep sleep' },
-          },
-        }),
-      );
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonRes({
+        data: {
+          id: 'e1',
+          status: 'abandoned',
+          supplement: { slug: 'magnesium', name: 'Magnesium' },
+          goal: { id: 'deep-sleep', name: 'Deep sleep' },
+        },
+      }),
+    );
     const r = await abandonExperiment('e1', fetchImpl as unknown as typeof fetch);
     expect(r.status).toBe('abandoned');
     const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
