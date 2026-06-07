@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotLoggedInError } from './cloud-stack';
 import {
+  abandonExperiment,
   checkInExperiment,
   getExperiment,
   getExperimentProtocol,
@@ -302,5 +303,25 @@ describe('experiments write', () => {
       ),
     ).toBe(true);
     vi.unstubAllGlobals();
+  });
+
+  it('abandonExperiment POSTs to the abandon endpoint with the Bearer token', async () => {
+    process.env.SUPSTACK_TOKEN = 'sct_live_x';
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonRes({
+        data: {
+          id: 'e1',
+          status: 'abandoned',
+          supplement: { slug: 'magnesium', name: 'Magnesium' },
+          goal: { id: 'deep-sleep', name: 'Deep sleep' },
+        },
+      }),
+    );
+    const r = await abandonExperiment('e1', fetchImpl as unknown as typeof fetch);
+    expect(r.status).toBe('abandoned');
+    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toContain('/me/experiments/e1/abandon');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer sct_live_x');
   });
 });

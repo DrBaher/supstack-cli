@@ -4,6 +4,18 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] — `experiments abandon`
+
+### Added
+
+- **`supstack experiments abandon <id>`** — stop an in-progress experiment (sets it
+  to `abandoned`, no verdict). A completed or already-abandoned one is rejected.
+  Closes the experiment lifecycle (you could start but not stop one).
+- **MCP tool `supstack_experiment_abandon`** — the same for agents. Server now
+  exposes 21 tools.
+
+Backed by `POST /me/experiments/[id]/abandon`.
+
 ## [0.17.0] — Stack metadata (dose / timing / brand)
 
 ### Added
