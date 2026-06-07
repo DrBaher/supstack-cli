@@ -8,6 +8,12 @@ name: Bump Homebrew formula
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to point the formula at (e.g. 0.16.0). Defaults to package.json on manual runs.'
+        required: false
+        type: string
 
 jobs:
   bump:
@@ -29,7 +35,12 @@ jobs:
         if: steps.gate.outputs.ok == 'true'
         id: meta
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          # tag push → the tag; manual run → the input, else npm's current latest.
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            if [ "${{ github.ref_type }}" = "tag" ]; then VERSION="${GITHUB_REF_NAME}"; else VERSION="$(npm view @supstack/cli version)"; fi
+          fi
+          VERSION="${VERSION#v}"
           URL="https://registry.npmjs.org/@supstack/cli/-/cli-${VERSION}.tgz"
           for i in $(seq 1 30); do
             if curl -sfL "$URL" -o pkg.tgz; then break; fi
