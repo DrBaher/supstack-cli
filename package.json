@@ -1,6 +1,7 @@
 {
   "name": "@supstack/cli",
-  "version": "0.18.0",
+  "version": "0.18.1",
+  "mcpName": "io.github.drbaher/supstack",
   "description": "SupStack CLI — evidence-based supplement intelligence, as a CLI and MCP server.",
   "keywords": [
     "supplements",

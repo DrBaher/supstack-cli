@@ -4,6 +4,16 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.1] — MCP Registry metadata
+
+### Added
+
+- **`mcpName` field** (`io.github.drbaher/supstack`) in `package.json` — the
+  official MCP Registry's npm-ownership proof — plus `server.json` (registry
+  manifest, description ≤100 chars per registry validation) and `smithery.yaml`.
+  No code changes; this release exists so the published npm package carries the
+  registry metadata.
+
 ## [0.18.0] — `experiments abandon`
 
 ### Added

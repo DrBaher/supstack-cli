@@ -1,0 +1,11 @@
+# Smithery config for the SupStack MCP server.
+# Lets smithery.ai auto-import and run the published npm package over stdio.
+# Docs: https://smithery.ai/docs/build/project-config
+startCommand:
+  type: stdio
+  # No configuration is required — the API is public and read-only.
+  configSchema:
+    type: object
+    properties: {}
+  commandFunction: |
+    () => ({ command: 'npx', args: ['-y', '@supstack/cli', 'mcp'] })
