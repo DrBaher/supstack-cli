@@ -4,6 +4,14 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.2] — MCP Registry namespace casing
+
+### Fixed
+
+- `mcpName` / `server.json` name is now `io.github.DrBaher/supstack` — the
+  registry's GitHub-auth namespace grant is case-sensitive on the username
+  (`io.github.DrBaher/*`), so the lowercase form 403'd on publish.
+
 ## [0.18.1] — MCP Registry metadata
 
 ### Added
