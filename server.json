@@ -1,5 +1,5 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.DrBaher/supstack",
   "description": "Evidence-based supplement research, dosing, safety, and interactions as agent-callable tools.",
   "version": "0.18.2",
