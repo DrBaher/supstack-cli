@@ -1,8 +1,18 @@
 import { z } from 'zod';
 
 import { defineCapability } from '../capability';
-import { type CloudStackItem, getCloudStack, putCloudStack, type StackPutItem } from '../cloud-stack';
-import { bold, dim } from '../output';
+import {
+  type CloudStackItem,
+  getCloudStack,
+  getCloudStackWithWarnings,
+  type MedicineMeta,
+  medicineMetaOf,
+  putCloudStackWithMeta,
+  type StackPutItem,
+  type StackWarning,
+  type StackWriteMeta,
+} from '../cloud-stack';
+import { bold, dim, yellow } from '../output';
 import {
   addToStack,
   normalizeSlug,
@@ -14,12 +24,25 @@ import {
 
 type StackAction = 'add' | 'remove' | 'list' | 'pull' | 'push' | 'sync';
 
-interface StackResult {
+interface StackResult extends MedicineMeta {
   action: StackAction;
   slug?: string;
   stack: StackItem[];
   /** Set for cloud actions — what happened, for the human summary. */
   cloud?: 'pulled' | 'pushed' | 'synced';
+  /**
+   * ⚠️ Population and medication warnings the SERVER computed for this stack.
+   * Part of the result type rather than a render-time lookup so `--json`
+   * consumers get them too — an MCP client reading this capability is as much
+   * a safety surface as the terminal is.
+   */
+  warnings?: StackWarning[];
+  /**
+   * ⚠️ Round 148. What the server could not store. Round 140 made the API say
+   * it; a client that drops the field leaves the user believing a truncated
+   * stack was saved whole — and unscreened items look identical to safe ones.
+   */
+  writeMeta?: StackWriteMeta;
 }
 
 const InputSchema = z
@@ -75,7 +98,7 @@ export const stack = defineCapability({
   mcp: {
     toolName: 'supstack_stack',
     description:
-      'Manage the user\'s supplement stack. Local: action="list" returns the local stack (slugs + any dosage/timing/brand); "add"/"remove" with a slug edit it — `add` also accepts dose, timing, and brand. Cloud (requires the user to be logged in): "pull" overwrites the local stack from their account, "push" overwrites their account from local, "sync" merges both (union) and saves to both — all preserving per-supplement dosage/timing/brand. Slugs are SupStack supplement ids (e.g. magnesium).',
+      'Manage the user\'s supplement stack. Local: action="list" returns the local stack (slugs + any dosage/timing/brand); "add"/"remove" with a slug edit it — `add` also accepts dose, timing, and brand. Cloud (requires the user to be logged in): "pull" overwrites the local stack from their account, "push" overwrites their account from local, "sync" merges both (union) and saves to both — all preserving per-supplement dosage/timing/brand. Slugs are SupStack supplement ids (e.g. magnesium). Cloud results can carry `warnings` per supplement and, once for the whole stack, `coverageNotice` and `medicineNotices` about the user\'s medicines: relay them.',
     mutates: true,
   },
   handler: async (input): Promise<StackResult> => {
@@ -98,8 +121,15 @@ export const stack = defineCapability({
 
       case 'pull': {
         // Cloud → local, preserving the cloud's dosage/timing/brand.
-        const cloud = await getCloudStack();
-        return { action: 'pull', cloud: 'pulled', stack: setStack(cloud.supplements.map(fromCloud)) };
+        // ⚠️ Keeps the server's warnings — see `getCloudStackWithWarnings`.
+        const { stack: cloud, warnings, ...medicine } = await getCloudStackWithWarnings();
+        return {
+          action: 'pull',
+          cloud: 'pulled',
+          stack: setStack(cloud.supplements.map(fromCloud)),
+          warnings,
+          ...medicineMetaOf(medicine),
+        };
       }
       case 'push': {
         // Membership = local. Local metadata wins; fall back to existing cloud
@@ -108,8 +138,17 @@ export const stack = defineCapability({
         const cloud = await getCloudStack();
         const cloudBySlug = new Map(cloud.supplements.map((s) => [s.slug, s]));
         const items = local.map((l) => toCloud(l, cloudBySlug.get(l.slug), l.slug));
-        const saved = await putCloudStack(items);
-        return { action: 'push', cloud: 'pushed', stack: saved.supplements.map(fromCloud) };
+        // ⚠️ Round 148. Keeps what the server said about the write — warnings
+        // it computed, and anything it could not store. See `putCloudStackWithMeta`.
+        const { stack: saved, meta } = await putCloudStackWithMeta(items);
+        return {
+          action: 'push',
+          cloud: 'pushed',
+          stack: saved.supplements.map(fromCloud),
+          warnings: meta.warnings,
+          writeMeta: meta,
+          ...medicineMetaOf(meta),
+        };
       }
       case 'sync': {
         // Additive union of slugs, merging metadata (local wins). Mirror to both.
@@ -119,10 +158,17 @@ export const stack = defineCapability({
         const cloudBySlug = new Map(cloud.supplements.map((s) => [s.slug, s]));
         const slugs = [...new Set([...cloud.supplements.map((s) => s.slug), ...local.map((i) => i.slug)])];
         const merged = slugs.map((slug) => toCloud(localBySlug.get(slug), cloudBySlug.get(slug), slug));
-        const saved = await putCloudStack(merged);
+        const { stack: saved, meta } = await putCloudStackWithMeta(merged);
         const items = saved.supplements.map(fromCloud);
         setStack(items);
-        return { action: 'sync', cloud: 'synced', stack: items };
+        return {
+          action: 'sync',
+          cloud: 'synced',
+          stack: items,
+          warnings: meta.warnings,
+          writeMeta: meta,
+          ...medicineMetaOf(meta),
+        };
       }
     }
   },
@@ -143,7 +189,45 @@ export const stack = defineCapability({
         r.stack.length === 0
           ? dim('Your stack is empty.')
           : `${bold(`Your stack (${r.stack.length})`)}\n` + r.stack.map(renderItem).join('\n');
-      return header ? `${header}\n${list}` : list;
+
+      // ⚠️ The server computed these for this caller's profile and this client
+      // used to discard them. Rendered under the list, in the same shape
+      // `recommend` uses, so one channel does not quietly say less than another.
+      const warned = r.warnings ?? [];
+      const warningLines = warned
+        .flatMap((w) => w.warnings.map((line) => `  ${yellow('⚠')} ${w.slug}: ${dim(line)}`))
+        .join('\n');
+
+      // ⚠️ Round 148. What the server could NOT store, printed above the
+      // warnings because an item that was never saved was also never screened —
+      // its absence from the warning list means nothing.
+      const wm = r.writeMeta;
+      const dropLines: string[] = [];
+      if (wm?.droppedOverCap) {
+        dropLines.push(
+          `  ${yellow('⚠')} ${wm.droppedOverCapNote ?? `${wm.droppedOverCap} supplements were not saved (limit ${wm.limit ?? '?'}).`}`,
+        );
+      }
+      if (wm?.droppedMalformed?.length) {
+        dropLines.push(
+          `  ${yellow('⚠')} ${wm.droppedMalformedNote ?? `${wm.droppedMalformed.length} entries could not be read and were not saved.`}`,
+        );
+      }
+      if (wm?.droppedUnknown?.length) {
+        dropLines.push(
+          `  ${yellow('⚠')} Not in our library, so not safety-checked: ${wm.droppedUnknown.join(', ')}`,
+        );
+      }
+
+      // Rulings 197.3 and 197.2: about the caller's medicines, so printed once
+      // under the list, never once per supplement.
+      const medicineLines = [r.coverageNotice, ...(r.medicineNotices ?? [])]
+        .filter((line): line is string => Boolean(line))
+        .map((line) => `  ${yellow('⚠')} ${line}`)
+        .join('\n');
+
+      const body = [list, dropLines.join('\n'), warningLines, medicineLines].filter(Boolean).join('\n');
+      return header ? `${header}\n${body}` : body;
     },
     json: (r): unknown => r,
   },

@@ -2,6 +2,22 @@ import { cacheEnabled, cacheIdentityFor, cacheKeyFor, cacheTtlMs, readCache, wri
 import { getApiKey, getBaseUrl, saveAnonKey } from './config';
 import { VERSION } from './version';
 
+/**
+ * Which front end is making the call. The MCP server sets `mcp` at start-up so
+ * the API's usage counter (src/lib/api-usage.ts) can tell an assistant calling
+ * through MCP from a person typing a command. It carries no identity.
+ */
+let clientTag: 'mcp' | null = null;
+
+export function setClientTag(tag: 'mcp' | null): void {
+  clientTag = tag;
+}
+
+/** `@supstack/cli/<version>`, plus ` (mcp)` when running as the MCP server. */
+export function userAgent(): string {
+  return `@supstack/cli/${VERSION}${clientTag ? ` (${clientTag})` : ''}`;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -81,7 +97,7 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'User-Agent': `@supstack/cli/${VERSION}`,
+    'User-Agent': userAgent(),
   };
   if (apiKey) headers['X-API-Key'] = apiKey;
 
@@ -146,33 +162,58 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
 
 const ANON_MINT_COOLDOWN_MS = 60_000;
 let anonMintCooldownUntil = 0;
+/** The key this process minted, kept even when it could not be written to disk. */
+let processAnonKey: string | undefined;
+/** The mint in flight, so concurrent first reads (an MCP server) share one mint. */
+let anonMintInFlight: Promise<string | undefined> | undefined;
 
 /**
  * Resolve the X-API-Key to send. If none is configured, mint an anonymous
- * instant-token on the first read and persist it — so repeat runs carry a stable
+ * instant-token on the first read and persist it, so repeat runs carry a stable
  * per-key identity (better rate limits + visibility) with zero friction. On
  * SUCCESS the saved key short-circuits future calls. On FAILURE (offline) we
  * back off 60s rather than latching forever, so a long-lived `mcp` server that
  * regains connectivity will mint on a later request. Skipped under vitest and
  * when SUPSTACK_NO_ANON_TOKEN is set.
+ *
+ * Saving is separate from minting. On a read-only home (a container, a sandboxed
+ * MCP host) the save throws, and it used to sit inside the mint's try, so the key
+ * the server had just created was discarded and every later read minted another
+ * one: one dead api_keys row per request, and every request still unkeyed. The
+ * key is now kept for the life of the process whether or not it reaches disk.
  */
 async function resolveApiKey(explicit?: string, fetchImpl?: typeof fetch): Promise<string | undefined> {
   if (explicit) return explicit;
   const existing = getApiKey();
   if (existing) return existing;
+  if (processAnonKey) return processAnonKey;
   if (process.env.VITEST || process.env.SUPSTACK_NO_ANON_TOKEN) return undefined;
   if (Date.now() < anonMintCooldownUntil) return undefined; // backing off after a recent failure
+  anonMintInFlight ??= mintAnonKey(fetchImpl).finally(() => {
+    anonMintInFlight = undefined;
+  });
+  return anonMintInFlight;
+}
+
+async function mintAnonKey(fetchImpl?: typeof fetch): Promise<string | undefined> {
+  let key: string | undefined;
   try {
     const res = await apiPost<{ key?: string }>('/auth/anon-token', undefined, { fetchImpl });
-    if (res?.key) {
-      saveAnonKey(res.key);
-      return res.key;
-    }
+    key = res?.key;
   } catch {
-    // Offline / endpoint unavailable — proceed anonymously (by IP).
+    // Offline / endpoint unavailable, proceed anonymously (by IP).
   }
-  anonMintCooldownUntil = Date.now() + ANON_MINT_COOLDOWN_MS;
-  return undefined;
+  if (!key) {
+    anonMintCooldownUntil = Date.now() + ANON_MINT_COOLDOWN_MS;
+    return undefined;
+  }
+  processAnonKey = key;
+  try {
+    saveAnonKey(key);
+  } catch {
+    // Read-only home: the key lives for this process only.
+  }
+  return key;
 }
 
 // ─── POST helper (auth endpoints) ────────────────────────────────────────
@@ -203,7 +244,7 @@ export async function apiPost<T = unknown>(
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'User-Agent': `@supstack/cli/${VERSION}`,
+    'User-Agent': userAgent(),
   };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (opts.bearer) headers.Authorization = `Bearer ${opts.bearer}`;
@@ -259,7 +300,7 @@ export async function apiGetAuthed<T = unknown>(
     res = await fetchImpl(baseUrl + path, {
       headers: {
         Accept: 'application/json',
-        'User-Agent': `@supstack/cli/${VERSION}`,
+        'User-Agent': userAgent(),
         Authorization: `Bearer ${bearer}`,
       },
       signal: controller.signal,

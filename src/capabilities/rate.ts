@@ -26,6 +26,24 @@ const GradeResponse = z.object({
       }),
     ),
     gaps: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
+    /**
+     * Interactions BETWEEN the graded supplements. The API grew this field so a
+     * caller could not relay a reassuring grade for a stack it had itself
+     * flagged; the schema did not, so Zod stripped it and the CLI rendered a
+     * clean grade for `iron` + `zinc` (major) and `trazodone` + `5-htp`.
+     * `.default([])` keeps older API versions parsing.
+     */
+    interactions: z
+      .array(
+        z.object({
+          supplements: z.tuple([z.string(), z.string()]),
+          severity: z.string(),
+          type: z.string(),
+          effect: z.string(),
+          recommendation: z.string(),
+        }),
+      )
+      .default([]),
     stack: z.array(z.string()),
     unknownSupplements: z.array(z.string()).default([]),
     unknownGoals: z.array(z.string()).default([]),
@@ -154,6 +172,27 @@ function renderGrade(d: GradeData): string {
   if (d.gaps.length) {
     out.push('');
     out.push(dim(`Gaps: ${d.gaps.map((g) => g.name).join(', ')} — nothing in your stack covers that well.`));
+  }
+
+  // The score is goal COVERAGE only, so it rises when a supplement is added
+  // even if that supplement conflicts with one already there. Printing the
+  // grade without this reads as a safety verdict it is not.
+  // `?? []` because `renderGrade` is also called with hand-built objects (tests,
+  // and any caller not going through the Zod parse) — a renderer that throws on
+  // a payload missing an optional field is worse than one that omits a line.
+  const flagged = d.interactions ?? [];
+  if (flagged.length) {
+    out.push('');
+    out.push(
+      yellow(
+        `⚠ ${flagged.length} flagged interaction${flagged.length === 1 ? '' : 's'} between these supplements — not reflected in the score:`,
+      ),
+    );
+    for (const i of flagged.slice(0, 5)) {
+      out.push(`  ${i.supplements.join(' + ')} ${dim(`(${i.severity})`)} — ${i.effect}`);
+      if (i.recommendation) out.push(dim(`    ${i.recommendation}`));
+    }
+    if (flagged.length > 5) out.push(dim(`  …and ${flagged.length - 5} more.`));
   }
 
   // Always make the inferred-vs-given distinction explicit and actionable.

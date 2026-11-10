@@ -7,6 +7,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
+import { ApiError } from './http';
 import { buildMcpServer, formatToolError } from './mcp';
 import { AUTHED_TOOLS } from './mcp-authed';
 import { capabilities } from './registry';
@@ -180,5 +181,34 @@ describe('formatToolError', () => {
 
   it('passes through a plain Error message', () => {
     expect(formatToolError(new Error('boom'))).toBe('boom');
+  });
+
+  // Pharmacist ruling 291 e2e (7 October 2026): a refusal's body is what the
+  // agent acts on. A restart refused by an emergency answer in the renewed
+  // screen carries the emergency instruction in safetyAction.
+  it('keeps an API refusal body: the safety instruction, the record problems, the plans needed', () => {
+    const body = {
+      error: 'screen_not_clear',
+      message:
+        'Not restarted. An answer in the renewed screen needs help or a pause first. Follow the instruction in safetyAction.',
+      safetyAction: {
+        category: 'emergency',
+        destination: 'emergency-services',
+        urgency: 'now',
+        instruction: 'Call your local emergency number, 112 in the EU.',
+      },
+      restartRecordProblems: ['sjs-ten'],
+      populationPlansRequired: [{ kind: 'lactation', reason: 'no-plan' }],
+    };
+    const text = formatToolError(new ApiError(409, body.message, body));
+    expect(text).toContain(body.message);
+    expect(text).toContain('112 in the EU');
+    expect(text).toContain('"restartRecordProblems"');
+    expect(text).toContain('sjs-ten');
+    expect(text).toContain('"populationPlansRequired"');
+  });
+
+  it('an API error without a body is its message', () => {
+    expect(formatToolError(new ApiError(0, 'timeout'))).toBe('timeout');
   });
 });

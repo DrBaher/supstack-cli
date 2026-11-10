@@ -1,8 +1,29 @@
 # SupStack CLI — conventions
 
 `@supstack/cli` is a thin, public-API client that ships as **both** a terminal CLI
-and an **MCP server**, from one capability registry. Phase 1 is read-only, no auth
-required (the API is soft-gated; anonymous calls are rate-limited to 60/min/IP).
+and an **MCP server**, from one capability registry.
+
+**Two tiers, and only one of them goes through the registry.**
+
+- **Phase 1 — anonymous read.** The 10 capabilities in `src/registry.ts` (`research`,
+  `search`, `compare`, `studies`, `interactions`, `stack`, `rate`, `goals`, `export`,
+  `define`) hit the public read API. No auth required — it is soft-gated, and
+  anonymous calls get 60/min/IP (the CLI mints an anonymous key on first run via
+  `POST /v1/auth/anon-token`, which raises that to 120/min).
+- **Phase 2 — authenticated, and it is live.** `login` / `logout` / `whoami`,
+  `profile`, `track` + `adherence`, cloud `stack`, `recommend` and the
+  `experiments` group (`list`, `show`, `start`, `check-in`, `abandon`, `protocol`)
+  call `/api/v1/me/*` with `Authorization: Bearer sct_live_…`, obtained through the
+  device-code flow (`src/auth.ts` → `/v1/auth/device/start|token`, approved by the
+  user at `supstack.me/activate`). These are wired directly in `src/cli.ts` and
+  `src/mcp-authed.ts`, **not** as registry capabilities, because they need a token
+  the registry's `apiGet()` path does not carry. That split is deliberate; it is
+  also the reason `registry.ts`'s "the single source of truth for what the CLI and
+  the MCP server can do" comment is true only of the anonymous tier.
+
+Endpoint contracts for both tiers live in the app repo's `API.md` and
+`src/lib/openapi-spec.ts`, which `tests/data/documented-surface-parity.test.ts`
+holds to the filesystem.
 
 ## The capability pattern (the one rule that matters)
 
@@ -46,9 +67,10 @@ inputSchema (zod)  →  handler(input)  →  format.{ text, json }
   npm package would couple the package to app internals and complicate its build.
   Each capability owns a small zod schema for the response shape it consumes. The
   same schema feeds the MCP tool's JSON Schema, so there's still one definition.
-- **Auth grammar is reserved and wired** (`supstack auth set-key`, `SUPSTACK_API_KEY`,
-  `X-API-Key` header). Anonymous works today; Phase 2 personalization flips to keys
-  without a client rewrite.
+- **Two credentials, not one.** `supstack auth set-key` / `SUPSTACK_API_KEY` sets an
+  `X-API-Key` for the anonymous read tier (rate limit only). `supstack login` obtains a
+  per-user CLI token (`sct_live_…`) sent as `Authorization: Bearer` — that is what the
+  `/me/*` commands use, and an API key does **not** substitute for it.
 - **MCP is first-class.** `@modelcontextprotocol/sdk` is a regular dependency.
   `src/mcp.ts` uses the low-level `Server` and generates each tool's JSON Schema
   from the capability's zod schema via zod v4's native

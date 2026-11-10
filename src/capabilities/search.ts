@@ -1,16 +1,9 @@
 import { z } from 'zod';
 
 import { defineCapability } from '../capability';
+import { EVIDENCE_TIER_MIN, evidenceLevelOf } from '../evidence-tiers';
 import { apiGet } from '../http';
 import { bold, dim, green, yellow } from '../output';
-
-/** Map a categorical evidence level to the API's numeric `minEvidence` threshold. */
-const EVIDENCE_MIN: Record<string, number> = {
-  emerging: 0,
-  moderate: 4,
-  strong: 6,
-  'very-strong': 8,
-};
 
 const SuggestResponse = z.object({
   data: z.array(
@@ -104,7 +97,15 @@ export const search = defineCapability({
         goal: input.goal,
         category: input.category,
         type: input.type,
-        minEvidence: input.evidence ? EVIDENCE_MIN[input.evidence] : undefined,
+        // The lowest score in the requested tier (canonical 8.5 / 7 / 5 / 3).
+        // Any value above 0 also excludes unscored entries server-side, which
+        // is what "at least Emerging" means: Unscored is the tier below it.
+        // `emerging` sends no minimum (owner decision, 2026-09-26): scripts use
+        // `--evidence emerging` to mean everything, unscored entries included,
+        // which is what it did before the tier fix. The other levels use the
+        // canonical tier floors.
+        minEvidence:
+          input.evidence && input.evidence !== 'emerging' ? EVIDENCE_TIER_MIN[input.evidence] : undefined,
         safety: input.safety,
         sort: input.sort ?? 'evidence',
         pageSize: input.limit,
@@ -127,7 +128,10 @@ export const search = defineCapability({
           const meta: string[] = [dim(h.type)];
           if (h.evidenceScore !== undefined) {
             const s = `${h.evidenceScore}/10`;
-            const score = h.evidenceScore >= 8 ? green(s) : h.evidenceScore < 4 ? yellow(s) : s;
+            // Colour by canonical tier: Strong and above green, below Moderate yellow.
+            const tier = evidenceLevelOf(h.evidenceScore);
+            const score =
+              tier === 'strong' || tier === 'very-strong' ? green(s) : tier === 'moderate' ? s : yellow(s);
             meta.push(`evidence ${score}${h.evidenceLevel ? ` (${h.evidenceLevel})` : ''}`);
           }
           if (h.safety) meta.push(`safety: ${h.safety}`);

@@ -4,6 +4,107 @@ All notable changes to `@supstack/cli` are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.19.0] (10 November 2026): experiment safety, the safety screen, ungraded interactions
+
+The first release since 0.18.2 (6 July 2026). It brings the CLI and MCP server
+in line with the live API, which since then requires every safety question at
+check-in and refuses a check-in that skips one, so **0.18.2 cannot complete a
+check-in today**. Upgrade with `npm i -g @supstack/cli@latest` or `brew upgrade
+supstack`.
+
+### Added
+
+- **New `experiments` commands**, also exposed as MCP tools where noted:
+  - `experiments report <id>`: report a symptom or safety concern at any time,
+    not only at a scheduled check-in (`supstack_experiment_report_safety`).
+    `--clarify <reportNumber:questionId>` with `--kind` corrects one earlier
+    saved answer.
+  - `experiments restart <id>`: restart an experiment paused for safety, with
+    the restart record the API requires (`--reviewer`, `--reviewed-on`,
+    `--dose`, `--form`, `--plan`, and the safety screen answered again with
+    `--screen`). Without `--screen` it prints what the restart needs
+    (`supstack_experiment_restart`).
+  - `experiments correct <id>`: correct a check-in answer chosen by mistake,
+    submitted or not. It is not a clinical review
+    (`supstack_experiment_correct`).
+  - `experiments clarify-status <id>`: release a status hold with a definite
+    pregnancy status.
+- **The safety screen the server sends is printed** by `experiments start`,
+  `check-in` and `list`, including a held restart and why it is held.
+- **`profile set --smoking <never|former|current>`.** Smoking status is a
+  population axis (it gates beta-carotene). Leaving it out keeps it unknown,
+  and unknown is never read as a clean screen.
+- **Provisional interaction grades.** A grade the API marks
+  `gradeConfidence: 'provisional'` prints with its provisional note in text,
+  JSON and MCP output, beside the unchanged severity.
+- **Medicine notices and routes.** Interaction output carries the medicine's
+  route and formulation, so tablet timing advice never prints for an injection.
+- **Withheld and held entries say so.** The teen withheld-for-age notice, the
+  dose-form gate's "held back" note with the profile link, and the pharmacist's
+  notice where the API withholds a studied dose range.
+- **A lost response is reported as unknown, never as saved or failed.** When
+  a check-in, restart, correction or `track` dose log times out or loses its
+  connection, the CLI prints the original error and then "We could not confirm
+  whether this update was saved" (or the dose-entry version), and the JSON and
+  MCP output carry `outcome: 'unknown'` with a read-back of what was sent.
+- **`track` relays experiment holds.** A dose log for a supplement in a held
+  experiment prints the hold, or says the hold state could not be read. Until
+  this release the client dropped that part of the response.
+- **Hidden dose sentences.** `research` accepts a `null` recommended dose
+  where the pharmacist's ruling hides the legacy sentence, and prints the
+  separate caveat or the "no dose assessment can be made" statement instead.
+- **The MCP server identifies itself.** Requests from `supstack mcp` send
+  `User-Agent: @supstack/cli/<version> (mcp)`, so API usage counts MCP and
+  terminal use separately. Older versions report both as the CLI.
+- **Check-in safety actions.** `experiments check-in` and `experiments show`
+  print the API's new `safetyAction` first, before the routine "check-in
+  recorded" line: an emergency instruction, an urgent same-day assessment, a
+  pause to contact a clinician, or a monitoring note, depending on the answer.
+  A pausing action means the experiment is paused, with no next check-in and
+  no next dose. The MCP check-in tool tells the model to relay it first.
+- **Safety questions are required, with a "not sure" answer.** `experiments
+  check-in <id>` marks every safety question `(required)` and lists
+  `not-sure` among its answers (`[yes | no | not-sure]`). The API refuses a
+  check-in that skips one, and the CLI prints the missing questions. A
+  `not-sure` answer prints that question's instruction as a precaution, under
+  "Not sure: as a precaution (the experiment is not paused)". The MCP
+  check-in tool tells the model to ask every safety question and never to
+  answer one for the user.
+- **Pharmacist ruling 198.** `experiments start` prints the safety
+  instruction when a baseline answer stops the start (`409 start_blocked`), and
+  baseline safety questions are now `(required)`. A `not-sure` answer follows
+  the question: on a red flag it is an emergency, on an urgent sign a pause.
+  Every pause prints the note that it applies to the optional supplement
+  experiment only, and what a restart needs (`restartRequires`).
+
+### Fixed
+
+- **The anonymous key survives a read-only home.** On a home directory that
+  cannot be written (a container, a sandboxed MCP host) the CLI minted an
+  anonymous key, failed to save it, discarded it and sent the request without
+  it, then minted again on the next request. The key is now kept for the life
+  of the process, and concurrent first requests share one mint.
+- **Ungraded interactions carry no grade.** A row the API marks ungraded or
+  unassessed prints as such and never with a severity colour, and a missing
+  assessment is never shown as an all-clear.
+- **Experiment reads fail closed.** A safety read the CLI cannot parse is an
+  error, not an empty result, and refusals print their text rather than raw
+  problem codes.
+- **Synergy cards print "not graded".** `interactions --supplements` no
+  longer colours a synergy card `positive`. The API sends a card with
+  `severity: null` and `reviewStatus: ungraded` since 10 October 2026
+  (pharmacist ruling 379: nothing in those pairs is individually graded), and
+  the schema accepts the null instead of throwing on every pair with a card.
+- **`search --evidence` uses the site's evidence tiers.** It mapped
+  `moderate` / `strong` / `very-strong` to `minEvidence` 4 / 6 / 8, while
+  supstack.me labels ≥5 Moderate, ≥7 Strong, ≥8.5 Very Strong, so
+  `--evidence strong` returned Moderate entries. It now sends 5 / 7 / 8.5.
+  `emerging` still applies no filter, so it returns everything, unscored
+  entries included, as before. The boundaries live once in
+  `src/evidence-tiers.ts`, and the text output colours scores on the same tiers.
+
 ## [0.18.2] — MCP Registry namespace casing
 
 ### Fixed

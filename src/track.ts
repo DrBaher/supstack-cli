@@ -1,13 +1,35 @@
-import { NotLoggedInError } from './cloud-stack';
+import { type MedicineMeta, medicineMetaOf, NotLoggedInError } from './cloud-stack';
 import { getToken } from './config';
 import { apiGetAuthed, apiPost } from './http';
 import { bold, cyan, dim, green, yellow } from './output';
+import { withUnknownOutcome } from './unknown-outcome';
 
-interface TrackResult {
+interface TrackResult extends MedicineMeta {
   date: string;
   status: string;
   logged: number;
   supplements: string[];
+  /**
+   * ⚠️ Round 96. What the server knows about what was just logged. On the
+   * result type, so `--json` and MCP consumers get it — an MCP client that logs
+   * an intake for someone is exactly the channel that should relay "and this one
+   * is flagged for you".
+   */
+  warnings?: TrackWarning[];
+  /**
+   * Pharmacist ruling 279 and item 1110 row 9: an experiment of a logged supplement holds the next optional dose, or its hold state could
+   * not be read (`source: 'unreadable'`, with her dose-log text and one outcome line in `message`). Until 10 November 2026 the client dropped
+   * this part of `meta`, so neither the CLI nor MCP ever relayed a hold on a dose log.
+   */
+  experimentHolds?: ExperimentHold[];
+}
+
+export interface ExperimentHold {
+  experimentId?: string;
+  supplement?: string;
+  source: string;
+  message: string;
+  doseEntry?: 'saved' | 'not-saved' | 'unknown';
 }
 
 interface Adherence {
@@ -26,6 +48,12 @@ function requireToken(): string {
   return token;
 }
 
+/** Population/medication warnings for what was just logged. */
+export interface TrackWarning {
+  slug: string;
+  warnings: string[];
+}
+
 export interface LogInput {
   supplement?: string;
   block?: string;
@@ -34,8 +62,27 @@ export interface LogInput {
 }
 
 export async function logIntake(input: LogInput, fetchImpl?: typeof fetch): Promise<TrackResult> {
-  const res = await apiPost<{ data: TrackResult }>('/me/track', input, { bearer: requireToken(), fetchImpl });
-  return res.data;
+  // ⚠️ Round 96. `/me/track` returns `meta.warnings` — what the server knows
+  // about what was just logged. Round 93 was this exact unwrap discarding
+  // `meta` on the stack endpoint; recreating it one round after fixing it would
+  // have been the fifth instance of a client lagging its server.
+  const res = await withUnknownOutcome('dose-log', null, () =>
+    apiPost<{
+      data: TrackResult;
+      meta?: { warnings?: TrackWarning[]; experimentHolds?: ExperimentHold[] } & MedicineMeta;
+    }>('/me/track', input, {
+      bearer: requireToken(),
+      fetchImpl,
+    }),
+  );
+  // Rulings 197.3 and 197.2: the coverage sentence and the medicine notices,
+  // kept like the warnings so `--json` and MCP get them too.
+  return {
+    ...res.data,
+    warnings: res.meta?.warnings ?? [],
+    ...medicineMetaOf(res.meta),
+    ...(res.meta?.experimentHolds?.length ? { experimentHolds: res.meta.experimentHolds } : {}),
+  };
 }
 
 export async function getAdherence(days: number, fetchImpl?: typeof fetch): Promise<Adherence> {
@@ -87,6 +134,20 @@ export async function runTrackLog(
     out(dim(`${verb} ${r.supplements[0]} for ${r.date}.`));
   } else {
     out(dim(`${verb} ${r.logged} supplements for ${r.date}: `) + r.supplements.join(', '));
+  }
+  // What the server flagged about what was just logged, in the shape `stack`
+  // prints it. The result carried these since round 96, for `--json` and MCP,
+  // and the terminal printed none of them.
+  for (const w of r.warnings ?? []) {
+    for (const line of w.warnings) out(`  ${yellow('⚠')} ${w.slug}: ${dim(line)}`);
+  }
+  // Ruling 279 and item 1110 row 9: the server's own hold text, as sent (her dose-log text and outcome line for an unreadable hold).
+  for (const h of r.experimentHolds ?? []) {
+    for (const line of String(h.message).split('\n')) if (line.trim() !== '') out(`  ${yellow('⚠')} ${line}`);
+  }
+  // Rulings 197.3 and 197.2: about the caller's medicines, once.
+  for (const line of [r.coverageNotice, ...(r.medicineNotices ?? [])]) {
+    if (line) out(`  ${yellow('⚠')} ${line}`);
   }
 }
 

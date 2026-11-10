@@ -11,8 +11,30 @@ const Detail = z.object({
   slug: z.string(),
   shortDescription: z.string().nullish(),
   evidence: z.object({ score: z.number().optional(), level: z.string().optional() }).optional(),
-  dosage: z.object({ recommended: z.string().optional() }).optional(),
-  safety: z.object({ overallRating: z.string().optional() }).optional(),
+  // Ruling 541: `doseStatement` (her W541) is exported in place of the prose for no endorsed dose.
+  dosage: z
+    .object({
+      recommended: z.string().nullable().optional(), // item 1110: null where the legacy sentence is hidden
+      doseStatement: z.string().nullable().optional(),
+      // Item 834: her W721 for a studied-only entry (the API publishes no range).
+      rangeStatement: z.string().nullable().optional(),
+      caveat: z.string().nullable().optional(), // item 1110 Q1
+      assessmentStatement: z.string().nullable().optional(), // item 1110 Q2
+    })
+    .optional(),
+  /**
+   * ⚠️ Round 187. An exported document outlives the session that made it —
+   * round 183's argument for the PDF applies here. "**Safety:** caution" as the
+   * whole safety record of a supplement whose entry says "Contraindicated —
+   * exogenous hormones may cause birth defects" is an under-disclosure a reader
+   * carries away with them.
+   */
+  safety: z
+    .object({
+      overallRating: z.string().optional(),
+      contraindications: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 interface ExportItem {
@@ -21,7 +43,12 @@ interface ExportItem {
   description?: string;
   evidenceScore?: number;
   dose?: string;
+  /** Item 834: her W721, when the API publishes no source-matched dose range. */
+  doseRangeStatement?: string;
+  doseCaveat?: string;
+  doseAssessmentStatement?: string;
   safety?: string;
+  contraindications?: string[];
 }
 
 interface ExportResult {
@@ -43,8 +70,12 @@ async function fetchItem(slug: string): Promise<ExportItem | null> {
       name: d.name,
       description: d.shortDescription ?? undefined,
       evidenceScore: d.evidence?.score,
-      dose: d.dosage?.recommended,
+      dose: d.dosage?.doseStatement ?? d.dosage?.recommended ?? undefined,
+      doseRangeStatement: d.dosage?.rangeStatement ?? undefined,
+      doseCaveat: d.dosage?.caveat ?? undefined,
+      doseAssessmentStatement: d.dosage?.assessmentStatement ?? undefined,
       safety: d.safety?.overallRating,
+      contraindications: d.safety?.contraindications?.length ? d.safety.contraindications : undefined,
     };
   } catch {
     return null;
@@ -59,8 +90,14 @@ function toMarkdown(items: ExportItem[]): string {
     if (it.description) lines.push('', it.description);
     const facts: string[] = [];
     if (it.dose) facts.push(`- **Dose:** ${it.dose}`);
+    if (it.doseRangeStatement) facts.push(`- **Dose range:** ${it.doseRangeStatement}`);
+    if (it.doseCaveat) facts.push(`- **Dose note:** ${it.doseCaveat}`);
+    if (it.doseAssessmentStatement) facts.push(`- **Dose assessment:** ${it.doseAssessmentStatement}`);
     if (it.evidenceScore !== undefined) facts.push(`- **Evidence:** ${it.evidenceScore}/10`);
     if (it.safety) facts.push(`- **Safety:** ${it.safety}`);
+    if (it.contraindications?.length) {
+      facts.push(`- **Do not take if:** ${it.contraindications.join('; ')}`);
+    }
     if (facts.length) lines.push('', ...facts);
     lines.push('');
   }

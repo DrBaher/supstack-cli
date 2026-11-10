@@ -37,6 +37,7 @@ export const EXAMPLES: Record<string, string[]> = {
     'supstack interactions magnesium zinc',
     'supstack interactions caffeine l-theanine ashwagandha --pathway',
     'supstack interactions magnesium potassium --medication lisinopril',
+    'supstack interactions calcium magnesium --medication ibandronate --route injection',
   ],
   stack: [
     'supstack stack list',
@@ -71,10 +72,27 @@ export const EXAMPLES: Record<string, string[]> = {
   'experiments check-in': [
     'supstack experiments check-in 8b03297e                     # shows this check-in’s questions',
     'supstack experiments check-in 8b03297e --answer sleep-onset=15 --answer compliance=yes',
+    'supstack experiments check-in 8b03297e --answer clot-warning-signs=not-sure   # every safety question is required, not-sure is an answer',
+  ],
+  'experiments report': [
+    'supstack experiments report 8b03297e                       # shows the safety questions, at any time',
+    'supstack experiments report 8b03297e --answer red-flag-signs=none --answer side-effects=none --answer pregnancy-status=no',
+  ],
+  'experiments correct': [
+    'supstack experiments correct 8b03297e --check-in 2 --answer dark-stool-iron=no --screen red-flag-signs=none --screen pregnancy-status=no --affirm',
+  ],
+  'experiments clarify-status': [
+    'supstack experiments clarify-status 8b03297e                      # shows the screen questions',
+    'supstack experiments clarify-status 8b03297e --screen red-flag-signs=none --screen pregnancy-status=no',
+  ],
+  'experiments restart': [
+    'supstack experiments restart 8b03297e                      # shows what the restart record needs',
+    'supstack experiments restart 8b03297e --screen red-flag-signs=none --screen pregnancy-status=no --screen breastfeeding-status=no --reviewer doctor --reviewed-on 2026-10-06 --dose "200 mg" --form capsule --plan "restart at night, stop if it recurs" --serious-injury excluded --serious-illness excluded --resolution resolved --other-exposures none --advised',
   ],
   'experiments abandon': ['supstack experiments abandon 8b03297e'],
   'profile set': [
     'supstack profile set --age 35 --sex male --weight 80 --weight-unit kg',
+    'supstack profile set --smoking former',
     'supstack profile set --goals deep-sleep,focus --sleep-hours 7 --exercise 3-4',
     'supstack profile set --conditions "hypertension" --medications "lisinopril"',
   ],
