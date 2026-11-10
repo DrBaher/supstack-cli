@@ -34,6 +34,7 @@ supstack compare magnesium glycine           # 2–3 head-to-head
 supstack studies "sleep" --type rct          # research library
 supstack interactions caffeine l-theanine --pathway   # interaction check (deep pair analysis)
 supstack interactions magnesium potassium --medication lisinopril   # supplement × drug check
+supstack interactions calcium --medication ibandronate --route injection   # the form changes the advice
 supstack stack add magnesium --dose 400mg --timing bedtime   # local stack (+ dose/timing/brand)
 supstack stack sync                          # sync local ⇄ your account (login required)
 supstack goals --category sleep              # list goal ids (for rate/recommend)
@@ -66,6 +67,7 @@ supstack stack sync     # additive merge of both; preserves existing cloud metad
 
 supstack profile                              # view your health profile
 supstack profile set --age 35 --sex male --weight 80 --weight-unit kg
+supstack profile set --smoking former   # never | former | current — gates beta-carotene
 supstack recommend                            # personalized picks from your goals + stack
 supstack experiments list                     # your N-of-1 experiments + verdicts
 supstack track log                            # log today's stack as taken

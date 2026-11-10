@@ -8,7 +8,7 @@ function jsonRes(body: unknown): Response {
 
 const GOALS = {
   data: [
-    { id: 'deep-sleep', name: 'Improve deep sleep quality', category: 'sleep' },
+    { id: 'deep-sleep', name: 'Perceived sleep quality', category: 'sleep' },
     { id: 'fall-asleep-faster', name: 'Fall asleep faster', category: 'sleep' },
     { id: 'sharpen-focus', name: 'Sharpen focus', category: 'mental' },
     { id: 'build-strength', name: 'Build strength & muscle', category: 'performance' },
@@ -41,7 +41,7 @@ describe('goals capability', () => {
     const text = goals.format.text(GOALS.data as never);
     expect(text).toContain('sleep');
     expect(text).toContain('deep-sleep');
-    expect(text).toContain('Improve deep sleep quality');
+    expect(text).toContain('Perceived sleep quality');
     expect(text).toContain('mental');
   });
 });

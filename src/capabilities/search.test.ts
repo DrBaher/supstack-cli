@@ -45,6 +45,18 @@ describe('search capability', () => {
     expect(hits[0]).toMatchObject({ slug: 'creatine', evidenceScore: 9, safety: 'high' });
     const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(url).toContain('/supplements');
-    expect(url).toContain('minEvidence=6'); // strong → 6
+    expect(url).toContain('minEvidence=7'); // strong → 7, the canonical Strong floor
+  });
+
+  it('sends the lowest score of each requested tier, never a Moderate score for strong', async () => {
+    // `emerging` sends no minimum at all: it keeps its old meaning of everything.
+    const expected = { emerging: null, moderate: '5', strong: '7', 'very-strong': '8.5' } as const;
+    for (const [level, min] of Object.entries(expected)) {
+      const fetchMock = vi.fn().mockResolvedValue(jsonRes({ data: [], meta: { total: 0 } }));
+      vi.stubGlobal('fetch', fetchMock);
+      await search.handler({ evidence: level, limit: 5 } as never);
+      const url = new URL(String(fetchMock.mock.calls[0]?.[0]));
+      expect(url.searchParams.get('minEvidence'), level).toBe(min);
+    }
   });
 });

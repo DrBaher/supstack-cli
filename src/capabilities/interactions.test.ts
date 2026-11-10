@@ -19,7 +19,12 @@ describe('interactions --medication', () => {
               data: {
                 supplement: { id: 'potassium', name: 'Potassium', slug: 'potassium' },
                 drugInteractions: [
-                  { medication: 'Lisinopril', severity: 'severe', description: 'Hyperkalemia risk' },
+                  {
+                    medication: 'Lisinopril',
+                    severity: 'severe',
+                    reviewState: 'reviewed',
+                    description: 'Hyperkalemia risk',
+                  },
                 ],
               },
             }
@@ -45,19 +50,32 @@ describe('interactions --medication', () => {
     const text = interactions.format.text({
       mode: 'medication',
       medication: 'lisinopril',
+      // ⚠️ `assessmentState` is REQUIRED on this result now, and its absence
+      // here is why this fixture used to prove the wrong thing: it produced a
+      // green "no known interaction" from a shape carrying no assessment at
+      // all. The route always sends the state; a fixture that omits it was
+      // testing a payload the server does not produce.
+      assessmentState: 'clear',
       results: [
         { supplement: { id: 'magnesium', name: 'Magnesium', slug: 'magnesium' }, drugInteractions: [] },
         {
           supplement: { id: 'potassium', name: 'Potassium', slug: 'potassium' },
           drugInteractions: [
-            { medication: 'Lisinopril', severity: 'severe', description: 'Hyperkalemia risk' },
+            {
+              medication: 'Lisinopril',
+              severity: 'severe',
+              reviewState: 'reviewed',
+              description: 'Hyperkalemia risk',
+            },
           ],
         },
       ],
     } as never);
     expect(text).toContain('Interactions with lisinopril');
     expect(text).toContain('Magnesium');
-    expect(text).toContain('no known interaction');
+    // Pharmacist ruling 263 (7 October 2026): her coverage sentence, not "no known interaction".
+    expect(text).toContain('No documented interaction was found in the data searched.');
+    expect(text).not.toContain('no known interaction');
     expect(text).toContain('severe');
     expect(text).toContain('Hyperkalemia risk');
     expect(text).toContain('not medical advice');
@@ -71,5 +89,56 @@ describe('interactions --medication', () => {
     expect(() =>
       interactions.inputSchema.parse({ supplements: ['magnesium'], medication: 'aspirin' }),
     ).not.toThrow();
+  });
+});
+
+describe('interactions --route (owner ruling 192.2)', () => {
+  it('sends the stated form and prints the server clarification when the form is unknown', async () => {
+    const fetchMock = vi.fn((url: string) => {
+      const u = new URL(String(url));
+      const routed = u.searchParams.get('route') === 'injection';
+      return Promise.resolve(
+        jsonRes({
+          data: {
+            supplement: { id: 'calcium', name: 'Calcium', slug: 'calcium' },
+            drugInteractions: routed
+              ? []
+              : [
+                  {
+                    medication: 'Bisphosphonates (alendronate, risedronate)',
+                    severity: 'moderate',
+                    reviewState: 'authored',
+                    description:
+                      'This advice depends on whether you take ibandronate as a tablet or have it as an injection.',
+                    routes: ['oral'],
+                    routeClarification: 'Do you take ibandronate as a tablet or have it as an injection?',
+                  },
+                ],
+          },
+          meta: { assessmentState: routed ? 'clear' : 'graded' },
+        }),
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const routed = await interactions.handler({
+      supplements: ['calcium'],
+      medication: 'ibandronate',
+      route: 'injection',
+    });
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('route=injection');
+    expect(routed.mode).toBe('medication');
+
+    const unknown = await interactions.handler({ supplements: ['calcium'], medication: 'ibandronate' });
+    const text = interactions.format.text(unknown);
+    expect(text).toContain('Do you take ibandronate as a tablet');
+  });
+
+  it('rejects a route the API does not know', () => {
+    // `nasal` became a real route with pharmacist ruling 209 (6 October 2026).
+    expect(
+      interactions.inputSchema.safeParse({ supplements: ['calcium'], medication: 'x', route: 'rectal' })
+        .success,
+    ).toBe(false);
   });
 });

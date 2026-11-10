@@ -1,0 +1,300 @@
+{
+  "_generated": "scripts/generate-ungraded-fixture.ts — do not hand-edit",
+  "slug": "bee-pollen",
+  "drug": "warfarin",
+  "safetyResponse": {
+    "data": {
+      "supplement": {
+        "id": "bee-pollen",
+        "name": "Bee Pollen",
+        "slug": "bee-pollen"
+      },
+      "safety": {
+        "overallRating": "moderate",
+        "maxSafeDose": "",
+        "doseLimit": {
+          "doseLimitText": "",
+          "label": "Dose reported in cited studies",
+          "labelKind": "studied",
+          "limitState": "studied-only",
+          "source": "cited-studies",
+          "value": null,
+          "unit": "g",
+          "population": null,
+          "form": null,
+          "isModelEstimate": false
+        },
+        "contraindications": [
+          "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart.",
+          "Severe asthma"
+        ],
+        "useRestrictions": [],
+        "warnings": [
+          "Can cause severe allergic reactions",
+          "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart."
+        ],
+        "sideEffects": [
+          {
+            "effect": "Allergic reaction",
+            "frequency": "unknown",
+            "severity": "severe",
+            "mitigation": "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart."
+          },
+          {
+            "effect": "GI upset",
+            "frequency": "unknown",
+            "severity": "mild",
+            "mitigation": "Pause this optional bee-pollen product if stomach symptoms are troublesome, persist or worsen, and seek clinical advice before continuing. Repeated vomiting or signs of dehydration need advice today; severe abdominal pain or marked dehydration needs urgent assessment now. If symptoms occur with mouth or throat swelling, breathing trouble, faintness or collapse, call your local emergency number, 112 in the EU, and follow your prescribed anaphylaxis plan. Do not take the product again to test a suspected allergy."
+          }
+        ],
+        "drugInteractions": [
+          {
+            "medication": "Blood thinners",
+            "description": "A clinically important interaction between bee pollen and each listed anticoagulant or antiplatelet medicine has not been established from the evidence supplied here. Ask a pharmacist to assess the exact supplement, medicine and other bleeding risks before use.",
+            "reviewState": "ungraded",
+            "severity": null,
+            "ungradedNote": "This possible interaction has not been individually evaluated for this supplement; its likelihood and severity are unknown. If you take an anticoagulant or antiplatelet medicine, ask a pharmacist or prescriber before using this product. Do not stop or change prescribed medicines based on this notice.",
+            "reviewStatus": "ungraded"
+          }
+        ],
+        "specialPopulations": [
+          {
+            "population": "Those with pollen allergies",
+            "recommendation": "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart."
+          }
+        ],
+        "populationSafety": {
+          "pregnancy": "block",
+          "pregnancyEvidence": "insufficient",
+          "nursing": "block",
+          "minors": "unknown",
+          "olderAdults": "unknown",
+          "smoking": "unknown",
+          "conditions": {
+            "plant-pollen-allergy": "block",
+            "bee-pollen-allergy": "block",
+            "asthma": "warn",
+            "ragweed-allergy": "block"
+          },
+          "conditionReasons": {
+            "plant-pollen-allergy": "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart.",
+            "bee-pollen-allergy": "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart.",
+            "asthma": "Severe asthma",
+            "ragweed-allergy": "Because you reported ragweed allergy, ask an allergy clinician or pharmacist to review this bee-pollen product before using it. Its pollen content may vary. Do not test it yourself if you have had a suspected reaction."
+          },
+          "unresolvedAllergyHistory": {
+            "verdict": "block",
+            "label": "Allergy history needs clarification",
+            "reason": "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart.",
+            "profileContexts": {
+              "bee-venom-allergy": "venom-product-relevance",
+              "propolis-contact-allergy": "other-bee-product-reaction"
+            },
+            "profileOnlyContexts": {
+              "bee-pollen-allergy": "legacy-combined-condition"
+            },
+            "records": "except-unrelated-non-allergic"
+          },
+          "otherDeclaredAllergy": {
+            "verdict": "warn",
+            "reason": "You have reported asthma or another allergy. Ask a pharmacist or clinician to review this bee-pollen product and its ingredients before trying it. This history does not by itself mean you are allergic to bee pollen. Do not try a small amount at home to test for allergy."
+          },
+          "reasons": {
+            "pregnancy": "Avoid during pregnancy — allergy risk and lack of safety data",
+            "nursing": "Breastfeeding suitability has not been established in this review for the exact bee pollen product. Have its ingredients, preparation and dose reviewed before optional use. This is not evidence that ordinary foods containing the ingredient are harmful, and it is not a reason to stop breastfeeding."
+          },
+          "reasonsDe": {
+            "pregnancy": "In der Schwangerschaft meiden – Allergierisiko und fehlende Sicherheitsdaten",
+            "nursing": "Für das genaue Produkt Blütenpollen wurde in dieser Prüfung nicht festgestellt, ob es in der Stillzeit geeignet ist. Lass Inhaltsstoffe, Zubereitung und Dosis vor einer freiwilligen Anwendung prüfen. Das ist kein Beleg dafür, dass übliche Lebensmittel mit diesem Inhaltsstoff schädlich sind, und kein Grund, das Stillen zu beenden."
+          }
+        },
+        "pregnancyCategory": "avoid",
+        "pregnancyRecommendation": "Avoid during pregnancy — allergy risk and lack of safety data",
+        "lactationCategory": "avoid"
+      }
+    }
+  },
+  "interactionsResponse": {
+    "data": {
+      "supplement": {
+        "id": "bee-pollen",
+        "name": "Bee Pollen",
+        "slug": "bee-pollen"
+      },
+      "drugInteractions": [
+        {
+          "medication": "Blood thinners",
+          "description": "A clinically important interaction between bee pollen and each listed anticoagulant or antiplatelet medicine has not been established from the evidence supplied here. Ask a pharmacist to assess the exact supplement, medicine and other bleeding risks before use.",
+          "reviewState": "ungraded",
+          "severity": null,
+          "ungradedNote": "This possible interaction has not been individually evaluated for this supplement; its likelihood and severity are unknown. If you take an anticoagulant or antiplatelet medicine, ask a pharmacist or prescriber before using this product. Do not stop or change prescribed medicines based on this notice.",
+          "reviewStatus": "ungraded",
+          "matchedVia": "class"
+        }
+      ],
+      "contraindications": [
+        "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart.",
+        "Severe asthma"
+      ],
+      "warnings": [
+        "Can cause severe allergic reactions",
+        "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart."
+      ],
+      "overallSafetyRating": "moderate"
+    }
+  },
+  "authored": {
+    "slug": "ginkgo-biloba",
+    "drug": "warfarin",
+    "safetyResponse": {
+      "data": {
+        "supplement": {
+          "id": "ginkgo-biloba",
+          "name": "Ginkgo Biloba",
+          "slug": "ginkgo-biloba"
+        },
+        "safety": {
+          "overallRating": "moderate",
+          "maxSafeDose": "",
+          "doseLimit": {
+            "doseLimitText": "",
+            "label": "Dose reported in cited studies",
+            "labelKind": "studied",
+            "limitState": "studied-only",
+            "source": "cited-studies",
+            "value": null,
+            "unit": "mg",
+            "population": null,
+            "form": null,
+            "isModelEstimate": false
+          },
+          "contraindications": [
+            "Bleeding disorders",
+            "Seizure disorders",
+            "Scheduled Surgery (contraindicated)"
+          ],
+          "useRestrictions": [],
+          "warnings": [
+            "Increases bleeding risk. Before surgery, tell the surgical team you take it and follow its plan for stopping and restarting",
+            "Effects in healthy young adults are modest",
+            "Only use standardized extracts, not raw leaves"
+          ],
+          "sideEffects": [
+            {
+              "effect": "Headache",
+              "frequency": "unknown",
+              "severity": "mild",
+              "mitigation": "If you develop a new or unexpected symptom, pause this optional product and seek advice before trying a lower dose, a different schedule or an added remedy. Follow any urgent instructions for the symptom now."
+            },
+            {
+              "effect": "GI upset",
+              "frequency": "unknown",
+              "severity": "mild",
+              "mitigation": "Take with food"
+            },
+            {
+              "effect": "Dizziness",
+              "frequency": "unknown",
+              "severity": "mild",
+              "mitigation": "If you develop a new or unexpected symptom, pause this optional product and seek advice before trying a lower dose, a different schedule or an added remedy. Follow any urgent instructions for the symptom now."
+            }
+          ],
+          "drugInteractions": [
+            {
+              "medication": "Blood thinners (Warfarin, Aspirin)",
+              "description": "Increases bleeding risk",
+              "reviewState": "authored",
+              "severity": "severe",
+              "reviewStatus": "graded"
+            },
+            {
+              "medication": "Anticonvulsants",
+              "description": "May reduce seizure threshold",
+              "reviewState": "authored",
+              "severity": "moderate",
+              "reviewStatus": "graded"
+            },
+            {
+              "medication": "SSRIs",
+              "description": "Possible increased bleeding risk",
+              "reviewState": "authored",
+              "severity": "mild",
+              "reviewStatus": "graded"
+            }
+          ],
+          "specialPopulations": [
+            {
+              "population": "Pregnant/nursing",
+              "recommendation": "Avoid due to bleeding risk and insufficient data"
+            },
+            {
+              "population": "Those on blood thinners",
+              "recommendation": "Avoid or use only under medical supervision"
+            }
+          ],
+          "populationSafety": {
+            "pregnancy": "block",
+            "pregnancyEvidence": "moderate",
+            "nursing": "block",
+            "minors": "unknown",
+            "olderAdults": "block",
+            "smoking": "unknown",
+            "conditions": {
+              "bleeding-disorders": "block",
+              "scheduled-surgery": "block",
+              "seizure-disorders": "warn"
+            },
+            "conditionReasons": {
+              "bleeding-disorders": "Inhibits platelet aggregation, increases bleeding risk",
+              "scheduled-surgery": "Antiplatelet effects increase surgical bleeding risk",
+              "seizure-disorders": "May lower seizure threshold"
+            },
+            "reasons": {
+              "pregnancy": "Avoid during pregnancy — bleeding risk and potential effects on fetal blood flow",
+              "nursing": "Avoid due to bleeding risk and insufficient data",
+              "olderAdults": "Bleeding risk especially with anticoagulants commonly prescribed to elderly"
+            },
+            "reasonsDe": {
+              "nursing": "Aufgrund des Blutungsrisikos und unzureichender Daten vermeiden",
+              "pregnancy": "Während der Schwangerschaft meiden – Blutungsrisiko und mögliche Auswirkungen auf die fetale Durchblutung",
+              "olderAdults": "Blutungsrisiko, insbesondere in Kombination mit Antikoagulanzien, die älteren Menschen häufig verschrieben werden"
+            }
+          },
+          "pregnancyCategory": "avoid",
+          "pregnancyRecommendation": "Avoid during pregnancy — bleeding risk and potential effects on fetal blood flow",
+          "lactationCategory": "avoid"
+        }
+      }
+    },
+    "interactionsResponse": {
+      "data": {
+        "supplement": {
+          "id": "ginkgo-biloba",
+          "name": "Ginkgo Biloba",
+          "slug": "ginkgo-biloba"
+        },
+        "drugInteractions": [
+          {
+            "medication": "Blood thinners (Warfarin, Aspirin)",
+            "description": "Increases bleeding risk",
+            "reviewState": "authored",
+            "severity": "severe",
+            "reviewStatus": "graded",
+            "matchedVia": "component"
+          }
+        ],
+        "contraindications": [
+          "Bleeding disorders",
+          "Seizure disorders",
+          "Scheduled Surgery (contraindicated)"
+        ],
+        "warnings": [
+          "Increases bleeding risk. Before surgery, tell the surgical team you take it and follow its plan for stopping and restarting",
+          "Effects in healthy young adults are modest",
+          "Only use standardized extracts, not raw leaves"
+        ],
+        "overallSafetyRating": "moderate"
+      }
+    }
+  }
+}

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { defineCapability } from '../capability';
 import { apiGet } from '../http';
-import { bold, dim } from '../output';
+import { bold, dim, red } from '../output';
 
 const STUDY_TYPES = [
   'rct',
@@ -28,6 +28,10 @@ const Study = z.object({
   study_type: z.string().nullish(),
   supplement_names: z.array(z.string()).optional(),
   doi: z.string().nullish(),
+  /** Active retraction (API >= 2026-09). The row is kept; it is not evidence. */
+  retracted: z.boolean().optional(),
+  /** Retraction / expression-of-concern notice, null when clean. */
+  retractionNotice: z.string().nullish(),
 });
 
 const StudiesResponse = z.object({
@@ -68,7 +72,7 @@ export const studies = defineCapability({
   mcp: {
     toolName: 'supstack_studies',
     description:
-      "Search SupStack's research library of peer-reviewed studies. Filter by free-text query, study type (e.g. rct, meta-analysis, systematic-review), and/or supplement slug. Sort by newest, relevance, or year. Returns study titles, journals, years, and study types.",
+      "Search SupStack's research library of peer-reviewed studies. Filter by free-text query, study type (e.g. rct, meta-analysis, systematic-review), and/or supplement slug. Sort by newest, relevance, or year. Returns study titles, journals, years, and study types. A row with `retracted: true` is a withdrawn paper kept for transparency — never cite it as evidence; say it was retracted (`retractionNotice`).",
   },
   handler: async (input): Promise<StudiesResult> => {
     const res = await apiGet<unknown>('/studies', {
@@ -91,7 +95,15 @@ export const studies = defineCapability({
         .map((s) => {
           const cite = [s.journal, s.year].filter(Boolean).join(', ');
           const tags = [s.study_type, s.supplement_names?.join('/')].filter(Boolean).join('  ·  ');
-          return `${bold(s.title)}\n  ${dim(cite)}${tags ? `  [${tags}]` : ''}`;
+          // A retracted paper is listed (so a reader who saw it cited elsewhere
+          // learns why we don't count it) but never as a bare title.
+          const marker = s.retracted
+            ? `${red(bold('RETRACTED'))} `
+            : s.retractionNotice
+              ? `${red('EXPRESSION OF CONCERN')} `
+              : '';
+          const notice = s.retractionNotice ? `\n  ${red(s.retractionNotice)}` : '';
+          return `${marker}${bold(s.title)}\n  ${dim(cite)}${tags ? `  [${tags}]` : ''}${notice}`;
         })
         .join('\n');
       return header + body;
