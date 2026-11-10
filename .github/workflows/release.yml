@@ -15,7 +15,7 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ['v*']
 
 permissions:
   contents: read
@@ -30,13 +30,15 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
           cache: npm
 
-      # Trusted Publishing (OIDC) requires npm >= 11.5.1; Node 20 ships npm 10.
+      # Trusted Publishing (OIDC) requires npm >= 11.5.1. Pinned to the 11 line,
+      # not @latest: on 10 Nov 2026 npm@latest was 12.x, which refuses Node 20,
+      # and the v0.19.0 release died here before it built anything.
       - name: Upgrade npm for OIDC trusted publishing
-        run: npm install -g npm@latest
+        run: npm install -g npm@11 && npm --version
 
       - run: npm ci
 
