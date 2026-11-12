@@ -3,6 +3,12 @@ import { z } from 'zod';
 import { defineCapability } from '../capability';
 import { apiGet } from '../http';
 import { bold, dim, yellow } from '../output';
+import {
+  frequencyLabel,
+  isGraded,
+  SEVERITY_NOT_ESTABLISHED_NOTE,
+  severityLabel,
+} from '../side-effect-labels';
 
 const Detail = z.object({
   name: z.string(),
@@ -139,6 +145,12 @@ const Safety = z.object({
       population: z.string().nullable(),
       form: z.string().nullable(),
       isModelEstimate: z.boolean(),
+      /** Item 1110 Q3/Q4 (837): what the number is, corrected (upper-intake-limit, efsa-safe-level, app-advisory, reference-only), or null. */
+      category: z.string().nullable().optional(),
+      /** Item 1110 Q3/Q4 (837): the source her review supplies for the reference number. */
+      referenceSource: z.object({ label: z.string(), url: z.string() }).nullable().optional(),
+      /** Item 1110 Q3/Q4 (837): the reference number is not a personal comparison. Her "not assessed" sentence, verbatim. */
+      personalComparison: z.object({ status: z.string(), statement: z.string() }).nullable().optional(),
     })
     .optional(),
   contraindications: z.array(z.string()).optional(),
@@ -149,8 +161,13 @@ const Safety = z.object({
     .array(
       z.object({
         effect: z.string(),
+        // Open strings on purpose: the API may add a value, and a client must not throw on it.
+        // Known: very-rare, rare, uncommon, common, unknown. Render through `frequencyLabel`.
         frequency: z.string(),
+        // Known: mild, moderate, severe, not-established. Render through `severityLabel`.
         severity: z.string(),
+        // Present only when severity is `not-established`.
+        severityNote: z.string().optional(),
         mitigation: z.string().nullable(),
       }),
     )
@@ -268,6 +285,11 @@ export const research = defineCapability({
         // Ruling 272: the dose text with its own label, never "max safe".
         if (r.safety.doseLimit?.doseLimitText) {
           out.push(`  ${dim(`${r.safety.doseLimit.label}:`)} ${r.safety.doseLimit.doseLimitText}`);
+          if (r.safety.doseLimit.referenceSource)
+            out.push(`  ${dim('Source:')} ${r.safety.doseLimit.referenceSource.url}`);
+          // Item 1110 Q3/Q4 (837): her sentence, verbatim. The number above is a reference, never a check of this reader's dose.
+          if (r.safety.doseLimit.personalComparison)
+            out.push(`  ${r.safety.doseLimit.personalComparison.statement}`);
         }
         // A contraindication is the strongest thing this payload carries — dhea's
         // "exogenous hormones may cause birth defects" lives here, not in
@@ -277,6 +299,20 @@ export const research = defineCapability({
           out.push(`  ${yellow('⚠')} Pregnancy: ${r.safety.pregnancyRecommendation}`);
         }
         for (const w of r.safety.warnings ?? []) out.push(`  ${yellow('⚠')} ${w}`);
+        // Rulings 855 and 856: an ungraded severity and an unestablished or very-rare frequency print as the API's words,
+        // never as "mild" or "rare".
+        const se = r.safety.sideEffects ?? [];
+        if (se.length) {
+          out.push(dim(`  Side effects (${se.length}):`));
+          for (const s of se.slice(0, 5)) {
+            out.push(
+              `    ${s.effect} ${dim(`(${severityLabel(s.severity)}, ${frequencyLabel(s.frequency)})`)}`,
+            );
+            if (!isGraded(s.severity))
+              out.push(dim(`      ${s.severityNote ?? SEVERITY_NOT_ESTABLISHED_NOTE}`));
+          }
+          if (se.length > 5) out.push(dim(`    …and ${se.length - 5} more`));
+        }
         const di = r.safety.drugInteractions ?? [];
         if (di.length) {
           out.push(dim(`  Drug interactions (${di.length}):`));

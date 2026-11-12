@@ -9,7 +9,7 @@ import { urgentTopHidesMonitoring } from './experiments';
 import { ApiError, setClientTag } from './http';
 import { AUTHED_TOOLS } from './mcp-authed';
 import { capabilities } from './registry';
-import { UnknownOutcomeError } from './unknown-outcome';
+import { networkLossText, UnknownOutcomeError } from './unknown-outcome';
 import { VERSION } from './version';
 
 /**
@@ -34,6 +34,8 @@ export function formatToolError(err: unknown): string {
   if (err instanceof ApiError && err.body !== null && typeof err.body === 'object') {
     return `${err.message}\n${JSON.stringify(err.body, null, 2)}`;
   }
+  // Item 1110 row 12: a lost connection is told as a read that did not complete or an update whose outcome is unknown.
+  if (err instanceof ApiError && networkLossText(err)) return `${err.message}\n${networkLossText(err)}`;
   return (err as Error).message;
 }
 

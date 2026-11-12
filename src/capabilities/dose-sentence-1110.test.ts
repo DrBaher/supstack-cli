@@ -58,3 +58,65 @@ describe('item 1110 reaches the CLI and MCP output', () => {
     expect(text).not.toMatch(/Dose {2}/);
   });
 });
+
+/**
+ * Item 1110 Q3 and Q4 (837, 10 November 2026): `safety.doseLimit` carries `category`, `referenceSource` and `personalComparison`.
+ * The parse strips undeclared keys, so they must be declared, and the text output prints her "not assessed" sentence under the
+ * labelled reference number.
+ */
+const THIRD_FORM =
+  'An upper intake limit is listed, but we cannot apply it to this product or person because its scope or the intake information is incomplete. This is not a finding that the dose is safe.';
+
+describe('item 1110 Q3 and Q4 (837) reaches the CLI and MCP output', () => {
+  it('keeps and prints the personal comparison statement and the reference source', async () => {
+    const reply = (data: unknown) =>
+      ({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({ data }),
+      }) as unknown as Response;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        String(url).includes('/safety')
+          ? reply({
+              safety: {
+                overallRating: 'moderate',
+                doseLimit: {
+                  doseLimitText: 'EFSA reference text',
+                  label: 'Established upper intake limit',
+                  labelKind: 'established-upper-limit',
+                  limitState: 'regulatory-limit',
+                  source: 'authority-upper-intake-limit',
+                  value: 2500,
+                  unit: 'mg',
+                  population: 'adults',
+                  form: null,
+                  isModelEstimate: false,
+                  category: 'upper-intake-limit',
+                  referenceSource: { label: 'EFSA UL overview', url: 'https://example.org/efsa' },
+                  personalComparison: { status: 'not-assessed', statement: THIRD_FORM },
+                },
+              },
+            })
+          : reply({
+              name: 'Calcium',
+              slug: 'calcium',
+              dosage: { recommended: '1000 mg', assessmentStatement: THIRD_FORM },
+            }),
+      ),
+    );
+    const r = (await research.handler({ slug: 'calcium' } as never)) as {
+      safety?: {
+        doseLimit?: { personalComparison?: { statement: string } | null; category?: string | null };
+      };
+    };
+    expect(r.safety?.doseLimit?.category).toBe('upper-intake-limit');
+    expect(r.safety?.doseLimit?.personalComparison?.statement).toBe(THIRD_FORM);
+    const text = strip(research.format.text(r as never));
+    expect(text).toContain('Established upper intake limit:');
+    expect(text).toContain('https://example.org/efsa');
+    expect(text).toContain(THIRD_FORM);
+  });
+});

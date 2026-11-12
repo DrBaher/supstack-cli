@@ -6,6 +6,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.19.1] (12 November 2026): side-effect labels, dose-limit sources, lost-connection texts
+
+Safety wording ruled by the pharmacist since 0.19.0. Nothing changes in how
+commands are called. Upgrade with `npm i -g @supstack/cli@latest` or `brew
+upgrade supstack`.
+
+### Added
+
+- **Side-effect frequency and severity words.** `supstack research` prints each
+  side effect with its severity and frequency. The API now sends `very-rare`
+  (strontium ranelate SJS/TEN only, "Very rare (fewer than 1 in 10,000 people)")
+  and a `not-established` severity ("Severity not established", with the
+  explanation in `severityNote`). A value the client does not know prints as
+  not established, never as rare or mild.
+- **Dose-limit source and scope.** Where the API sends them, `supstack
+  research` prints the source of a dose-limit reference number and the
+  pharmacist's sentence that the number is a reference, not a check of your
+  own dose.
+
+### Changed
+
+- **A lost connection says what it means.** A timeout or network error on a
+  read now prints "SupStack could not retrieve the current record. Refresh it
+  before taking further action. Follow any safety advice already shown." On a
+  submitted update (check-in, restart, correction) it prints "We could not
+  confirm whether this update was saved. Refresh the record before trying
+  again. Follow any safety advice already shown." Both in the CLI and in MCP
+  tool errors.
+- **`experiments list` on a product that cannot be restarted** shows the
+  pharmacist's list-row text, which points to `experiments show` for the
+  event-specific safety advice.
+
 ## [0.19.0] (10 November 2026): experiment safety, the safety screen, ungraded interactions
 
 The first release since 0.18.2 (6 July 2026). It brings the CLI and MCP server

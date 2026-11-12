@@ -13,7 +13,7 @@ import { attachExamples } from './help-text';
 import { ApiError } from './http';
 import { bold, cyan, dim, red } from './output';
 import { capabilities } from './registry';
-import { UnknownOutcomeError } from './unknown-outcome';
+import { networkLossText, UnknownOutcomeError } from './unknown-outcome';
 import { VERSION } from './version';
 
 /**
@@ -118,6 +118,8 @@ export function printError(err: unknown, asJson = false): void {
     }
     // Item 1110 row 3 (her item 750 text, verbatim): after the error line, for a timeout or network error on a check-in, restart or correction.
     if (err instanceof UnknownOutcomeError) process.stderr.write(`${err.outcomeText}\n`);
+    // Item 1110 row 12: any other lost connection says what it is, by whether the request was a read or a submitted update.
+    else if (networkLossText(err)) process.stderr.write(`${networkLossText(err)}\n`);
     if (err.status === 401) {
       process.stderr.write(
         dim('  Hint: set a key with `supstack auth set-key <key>` or SUPSTACK_API_KEY.\n'),

@@ -22,7 +22,10 @@
           "unit": "g",
           "population": null,
           "form": null,
-          "isModelEstimate": false
+          "isModelEstimate": false,
+          "category": null,
+          "referenceSource": null,
+          "personalComparison": null
         },
         "contraindications": [
           "Avoid bee pollen if you have previously reacted to it or have a pollen allergy. Do not try a small amount at home to test for allergy. After a suspected reaction, avoid the product pending clinical assessment. A confirmed serious product reaction prevents app-supported restart.",
@@ -166,7 +169,10 @@
             "unit": "mg",
             "population": null,
             "form": null,
-            "isModelEstimate": false
+            "isModelEstimate": false,
+            "category": null,
+            "referenceSource": null,
+            "personalComparison": null
           },
           "contraindications": [
             "Bleeding disorders",

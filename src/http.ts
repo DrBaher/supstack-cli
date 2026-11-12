@@ -23,6 +23,11 @@ export class ApiError extends Error {
     public readonly status: number,
     message: string,
     public readonly body?: unknown,
+    /**
+     * Item 1110, her row 12: for a status 0 error (a lost connection or a timeout), whether the request was a read or a submitted update.
+     * A lost response can follow a successful write, so the two are told differently. Unset on a server answer.
+     */
+    public readonly requestKind?: 'read' | 'write',
   ) {
     super(message);
     this.name = 'ApiError';
@@ -125,6 +130,8 @@ export async function apiGet<T = unknown>(path: string, opts: ApiGetOptions = {}
         throw new ApiError(
           0,
           timedOut ? `Request timed out after ${timeoutMs}ms` : `Network error: ${(err as Error).message}`,
+          undefined,
+          'read',
         );
       }
       await sleep(backoffMs(attempt));
@@ -265,6 +272,8 @@ export async function apiPost<T = unknown>(
       controller.signal.aborted
         ? `Request timed out after ${timeoutMs}ms`
         : `Network error: ${(err as Error).message}`,
+      undefined,
+      'write',
     );
   } finally {
     clearTimeout(timer);
@@ -311,6 +320,8 @@ export async function apiGetAuthed<T = unknown>(
       controller.signal.aborted
         ? `Request timed out after ${timeoutMs}ms`
         : `Network error: ${(err as Error).message}`,
+      undefined,
+      'read',
     );
   } finally {
     clearTimeout(timer);
