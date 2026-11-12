@@ -29,3 +29,16 @@ export function heldCodeText(code: string | undefined): string {
       : undefined) ?? HELD_CODE_UNINTERPRETED_1110
   );
 }
+
+/**
+ * Her question 7 answer B (10 November 2026): the list row does not show the event advice, so it carries her list-row variant of
+ * app_restart_unavailable. The full text above stays for a place that does show the event advice. Held equal to
+ * src/data/code-texts-1110.ts by tests/lib/experiments/codes-1110.test.ts.
+ */
+export const APP_RESTART_UNAVAILABLE_LIST_1110 =
+  'SupStack cannot restart this product for the recorded event. Use experiments show to read the event-specific safety advice, and ask the treating clinician about your treatment.';
+
+/** The text for a held row in `experiments list`: her list-row variant where she gave one, otherwise as `heldCodeText`. */
+export function heldCodeListText(code: string | undefined): string {
+  return code === 'app_restart_unavailable' ? APP_RESTART_UNAVAILABLE_LIST_1110 : heldCodeText(code);
+}

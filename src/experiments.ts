@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { NotLoggedInError } from './cloud-stack';
 import { getToken } from './config';
-import { heldCodeText } from './held-code-text';
+import { heldCodeListText } from './held-code-text';
 import { ApiError, apiGetAuthed, apiPost } from './http';
 import { bold, cyan, dim, green, red, yellow } from './output';
 import { withUnknownOutcome } from './unknown-outcome';
@@ -543,7 +543,7 @@ export async function runExperimentsList(status: string | undefined, asJson: boo
         (e.held && e.heldReason ? `  ${red(e.heldReason.error)}` : ''),
     );
     // A held row with no readable code gets her "could not be interpreted" line and no code, never a clear or eligible reading.
-    if (e.held) out(`    ${heldCodeText(e.heldReason?.error)}`);
+    if (e.held) out(`    ${heldCodeListText(e.heldReason?.error)}`);
     printSafetyScreen(e.safety, '    ');
   }
   out();

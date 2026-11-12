@@ -25,11 +25,21 @@ import {
   runExperimentCheckIn,
   runExperimentsList,
 } from './experiments';
-import { HELD_CODE_TEXT, HELD_CODE_UNINTERPRETED_1110 } from './held-code-text';
+import {
+  APP_RESTART_UNAVAILABLE_LIST_1110,
+  HELD_CODE_TEXT,
+  HELD_CODE_UNINTERPRETED_1110,
+} from './held-code-text';
 import { ApiError } from './http';
 import { buildMcpServer } from './mcp';
 import { runTrackLog } from './track';
-import { DOSE_ENTRY_UNKNOWN_1110, UnknownOutcomeError, UPDATE_OUTCOME_UNKNOWN_750 } from './unknown-outcome';
+import {
+  DOSE_ENTRY_UNKNOWN_1110,
+  READ_FAILED_1110,
+  UnknownOutcomeError,
+  UPDATE_OUTCOME_UNKNOWN_750,
+  WRITE_UNKNOWN_1110,
+} from './unknown-outcome';
 
 const ID = '8b03297e-0000-4000-8000-0000000011b1';
 const ok = (body: unknown) =>
@@ -154,7 +164,7 @@ describe('row 3: a lost response is an unknown outcome, never saved and never fa
     expect(j.status).toBe(0);
     expect(j.message).toBe('Network error: fetch failed');
     expect(j.outcome).toBe('unknown');
-    expect(j.outcomeMessage).toBe(UPDATE_OUTCOME_UNKNOWN_750);
+    expect(j.outcomeMessage).toBe(WRITE_UNKNOWN_1110);
     expect(j.readBack).toMatchObject({ action: 'check-in', experimentId: ID });
   });
 
@@ -200,11 +210,11 @@ describe('row 3: a lost response is an unknown outcome, never saved and never fa
       const f = lost();
       const res = await mcpCall(name, args);
       expect(res.isError, name).toBe(true);
-      expect(res.content[0]!.text).toBe(UPDATE_OUTCOME_UNKNOWN_750);
+      expect(res.content[0]!.text).toBe(WRITE_UNKNOWN_1110);
       expect(res.structuredContent).toMatchObject({
         outcome: 'unknown',
         saved: null,
-        message: UPDATE_OUTCOME_UNKNOWN_750,
+        message: WRITE_UNKNOWN_1110,
         error: { status: 0 },
       });
       expect(JSON.parse(res.content[1]!.text)).toMatchObject({
@@ -279,7 +289,11 @@ describe('row 4: the held row in `experiments list` carries her 748 text beside 
       const r = await list([row({ held: true, heldReason: { error: code } })]);
       const t = plain(r.out);
       expect(t, code).toContain(code);
-      expect(t, code).toContain(text);
+      // Her question 7 (answer B): a list row does not show the event advice, so app_restart_unavailable carries her list-row variant.
+      expect(t, code).toContain(
+        code === 'app_restart_unavailable' ? APP_RESTART_UNAVAILABLE_LIST_1110 : text,
+      );
+      if (code === 'app_restart_unavailable') expect(t, code).not.toContain(text);
       expect(t, code).not.toContain(HELD_CODE_UNINTERPRETED_1110);
     }
   });
@@ -351,5 +365,52 @@ describe('row 9: `track log` relays the hold text the server sends', () => {
     );
     const j = await capture(() => runTrackLog('magnesium', {}, true));
     expect(JSON.parse(j.out)).not.toHaveProperty('experimentHolds');
+  });
+});
+
+describe('item 1110 row 12 (code network): her text by what the lost request was', () => {
+  it('a read that did not complete: her read text, after the error line, no "the pause stays"', async () => {
+    const e = new ApiError(0, 'Request timed out after 30000ms', undefined, 'read');
+    const text = plain((await capture(async () => printError(e))).err);
+    expect(text).toContain('API error (network): Request timed out after 30000ms');
+    expect(text).toContain(READ_FAILED_1110);
+    expect(text).not.toContain(WRITE_UNKNOWN_1110);
+    expect(text).not.toMatch(/stays paused|nothing changed/);
+  });
+  it('a submitted update that is not one of the wrapped actions: her unconfirmed-update text', async () => {
+    const e = new ApiError(0, 'Network error: fetch failed', undefined, 'write');
+    const text = plain((await capture(async () => printError(e))).err);
+    expect(text).toContain(WRITE_UNKNOWN_1110);
+  });
+  it('a server answer, even a 5xx, is not a lost connection: no network text', async () => {
+    const e = new ApiError(500, 'The server said so', {}, undefined);
+    const text = plain((await capture(async () => printError(e))).err);
+    expect(text).not.toContain(WRITE_UNKNOWN_1110);
+    expect(text).not.toContain(READ_FAILED_1110);
+  });
+  it('MCP: the same text follows the error message', async () => {
+    const { formatToolError } = await import('./mcp');
+    expect(formatToolError(new ApiError(0, 'Request timed out after 1ms', undefined, 'read'))).toBe(
+      `Request timed out after 1ms\n${READ_FAILED_1110}`,
+    );
+    expect(formatToolError(new ApiError(0, 'Network error: x', undefined, 'write'))).toBe(
+      `Network error: x\n${WRITE_UNKNOWN_1110}`,
+    );
+  });
+  it('the real transports tag the request kind: GET reads, authed GET reads, POST writes', async () => {
+    const { apiGet, apiGetAuthed, apiPost } = await import('./http');
+    const boom = (async () => {
+      throw new TypeError('fetch failed');
+    }) as unknown as typeof fetch;
+    const get = await apiGet('/x', {
+      fetchImpl: boom,
+      maxRetries: 0,
+      sleepImpl: async () => {},
+      apiKey: 'k',
+    }).catch((x) => x);
+    const authed = await apiGetAuthed('/x', 'b', { fetchImpl: boom }).catch((x) => x);
+    const writeErr = await apiPost('/x', {}, { fetchImpl: boom }).catch((x) => x);
+    const kind = (x: unknown) => (x as ApiError).requestKind;
+    expect([kind(get), kind(authed), kind(writeErr)]).toEqual(['read', 'read', 'write']);
   });
 });

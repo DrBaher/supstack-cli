@@ -11,12 +11,32 @@ export const UPDATE_OUTCOME_UNKNOWN_750 =
 export const DOSE_ENTRY_UNKNOWN_1110 =
   'We could not confirm whether this dose entry was saved. Check the dose history before trying again.';
 
+/**
+ * Her row 12 (code `network`, 10 November 2026, "Inputs you asked for" question 5): after a submitted update, and for a read that did not
+ * complete. Held equal to src/data/code-texts-1110.ts by tests/lib/experiments/codes-1110.test.ts. It extends her item 750 line with
+ * "Follow any safety advice already shown." and is the one the CLI prints.
+ */
+export const WRITE_UNKNOWN_1110 =
+  'We could not confirm whether this update was saved. Refresh the record before trying again. Follow any safety advice already shown.';
+export const READ_FAILED_1110 =
+  'SupStack could not retrieve the current record. Refresh it before taking further action. Follow any safety advice already shown.';
+
+/** What a status 0 error is told, by what the request was. Undefined when the kind is not known (never guessed). */
+export function networkLossText(err: { status: number; requestKind?: 'read' | 'write' }): string | undefined {
+  if (err.status !== 0) return undefined;
+  return err.requestKind === 'write'
+    ? WRITE_UNKNOWN_1110
+    : err.requestKind === 'read'
+      ? READ_FAILED_1110
+      : undefined;
+}
+
 export type UnknownOutcomeAction = 'check-in' | 'restart' | 'correction' | 'dose-log';
 
 const TEXT: Record<UnknownOutcomeAction, string> = {
-  'check-in': UPDATE_OUTCOME_UNKNOWN_750,
-  restart: UPDATE_OUTCOME_UNKNOWN_750,
-  correction: UPDATE_OUTCOME_UNKNOWN_750,
+  'check-in': WRITE_UNKNOWN_1110,
+  restart: WRITE_UNKNOWN_1110,
+  correction: WRITE_UNKNOWN_1110,
   'dose-log': DOSE_ENTRY_UNKNOWN_1110,
 };
 
@@ -40,7 +60,7 @@ export class UnknownOutcomeError extends ApiError {
     experimentId: string | null,
     now: Date = new Date(),
   ) {
-    super(cause.status, cause.message, cause.body);
+    super(cause.status, cause.message, cause.body, 'write');
     this.name = 'UnknownOutcomeError';
     this.outcomeText = TEXT[action];
     this.readBack = {
