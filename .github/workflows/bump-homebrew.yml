@@ -18,6 +18,7 @@ on:
 jobs:
   bump:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - name: Check for tap token
         id: gate
@@ -42,11 +43,28 @@ jobs:
           fi
           VERSION="${VERSION#v}"
           URL="https://registry.npmjs.org/@supstack/cli/-/cli-${VERSION}.tgz"
-          for i in $(seq 1 30); do
-            if curl -sfL "$URL" -o pkg.tgz; then break; fi
-            echo "waiting for npm tarball (attempt $i)…"; sleep 10
+          # The tag starts this job and release.yml together, and npm can take 10 minutes or more to serve
+          # a new tarball (about 8 minutes for 0.19.1). Wait up to 30 minutes, then fail closed: an empty
+          # sha256 in the formula breaks every `brew install` (0.18.2 and 0.19.1 both shipped one).
+          rm -f pkg.tgz
+          for i in $(seq 1 120); do
+            if curl -sfL "$URL" -o pkg.tgz && gzip -t pkg.tgz 2>/dev/null; then break; fi
+            rm -f pkg.tgz
+            echo "waiting for npm tarball (attempt $i)…"; sleep 15
           done
+          if [ ! -s pkg.tgz ]; then
+            echo "::error::npm never served $URL, the formula is left unchanged"; exit 1
+          fi
+          # The registry's own SHA-1 must match what we downloaded.
+          NPM_SHA1="$(npm view "@supstack/cli@${VERSION}" dist.shasum)"
+          GOT_SHA1="$(sha1sum pkg.tgz | cut -d' ' -f1)"
+          if [ -z "$NPM_SHA1" ] || [ "$NPM_SHA1" != "$GOT_SHA1" ]; then
+            echo "::error::tarball SHA-1 $GOT_SHA1 does not match npm dist.shasum '$NPM_SHA1'"; exit 1
+          fi
           SHA="$(sha256sum pkg.tgz | cut -d' ' -f1)"
+          if ! echo "$SHA" | grep -Eq '^[0-9a-f]{64}$'; then
+            echo "::error::sha256 is not a 64-hex digest: '$SHA'"; exit 1
+          fi
           {
             echo "version=$VERSION"
             echo "url=$URL"
@@ -58,6 +76,10 @@ jobs:
         env:
           TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
+          # Belt and braces: never write an empty or malformed checksum.
+          if ! echo "${{ steps.meta.outputs.sha }}" | grep -Eq '^[0-9a-f]{64}$'; then
+            echo "::error::refusing to write sha256 '${{ steps.meta.outputs.sha }}'"; exit 1
+          fi
           git clone "https://x-access-token:${TOKEN}@github.com/DrBaher/homebrew-supstack.git" tap
           cd tap
           sed -i -E "s#url \".*\"#url \"${{ steps.meta.outputs.url }}\"#" Formula/supstack.rb
