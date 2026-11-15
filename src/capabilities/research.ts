@@ -172,6 +172,8 @@ const Safety = z.object({
       }),
     )
     .optional(),
+  /** Item 1113 part e: her scoped evidence and uncertainty notes. Not adverse events, no grade. Empty is not a safety claim. */
+  evidenceNotes: z.array(z.string()).optional(),
   populationSafety: z.unknown().optional(),
   pregnancyCategory: z.string().nullable().optional(),
   pregnancyRecommendation: z.string().nullable().optional(),
@@ -312,6 +314,11 @@ export const research = defineCapability({
               out.push(dim(`      ${s.severityNote ?? SEVERITY_NOT_ESTABLISHED_NOTE}`));
           }
           if (se.length > 5) out.push(dim(`    …and ${se.length - 5} more`));
+        }
+        const notes = r.safety.evidenceNotes ?? [];
+        if (notes.length) {
+          out.push(dim('  Evidence and uncertainty:'));
+          for (const n of notes) out.push(dim(`    ${n}`));
         }
         const di = r.safety.drugInteractions ?? [];
         if (di.length) {
