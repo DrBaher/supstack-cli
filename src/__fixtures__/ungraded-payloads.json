@@ -46,10 +46,12 @@
           {
             "effect": "GI upset",
             "frequency": "unknown",
-            "severity": "mild",
+            "severity": "not-established",
+            "severityNote": "The available source did not grade how severe these reactions were. This does not mean they were mild.",
             "mitigation": "Pause this optional bee-pollen product if stomach symptoms are troublesome, persist or worsen, and seek clinical advice before continuing. Repeated vomiting or signs of dehydration need advice today; severe abdominal pain or marked dehydration needs urgent assessment now. If symptoms occur with mouth or throat swelling, breathing trouble, faintness or collapse, call your local emergency number, 112 in the EU, and follow your prescribed anaphylaxis plan. Do not take the product again to test a suspected allergy."
           }
         ],
+        "evidenceNotes": [],
         "drugInteractions": [
           {
             "medication": "Blood thinners",
@@ -189,22 +191,26 @@
             {
               "effect": "Headache",
               "frequency": "unknown",
-              "severity": "mild",
+              "severity": "not-established",
+              "severityNote": "The available source did not grade how severe these reactions were. This does not mean they were mild.",
               "mitigation": "If you develop a new or unexpected symptom, pause this optional product and seek advice before trying a lower dose, a different schedule or an added remedy. Follow any urgent instructions for the symptom now."
             },
             {
               "effect": "GI upset",
               "frequency": "unknown",
-              "severity": "mild",
+              "severity": "not-established",
+              "severityNote": "The available source did not grade how severe these reactions were. This does not mean they were mild.",
               "mitigation": "Take with food"
             },
             {
               "effect": "Dizziness",
               "frequency": "unknown",
-              "severity": "mild",
+              "severity": "not-established",
+              "severityNote": "The available source did not grade how severe these reactions were. This does not mean they were mild.",
               "mitigation": "If you develop a new or unexpected symptom, pause this optional product and seek advice before trying a lower dose, a different schedule or an added remedy. Follow any urgent instructions for the symptom now."
             }
           ],
+          "evidenceNotes": [],
           "drugInteractions": [
             {
               "medication": "Blood thinners (Warfarin, Aspirin)",

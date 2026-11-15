@@ -6,6 +6,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.19.2] (15 November 2026): evidence notes, start and check-in states
+
+Safety wording ruled by the pharmacist since 0.19.1. Nothing changes in how
+commands are called. Upgrade with `npm i -g @supstack/cli@latest` or `brew
+upgrade supstack`.
+
+### Added
+
+- **Evidence and uncertainty notes.** `supstack research` prints the
+  pharmacist's scoped evidence and uncertainty notes for an entry, under their
+  own heading. They are not adverse events and carry no grade, and an entry
+  with none says nothing.
+
+### Changed
+
+- **MCP experiment tools relay three more states word for word.** Starting an
+  experiment: a 409 `start_in_progress` (a start of this product is already in
+  progress, nothing was created, do not start another) and a 500 with
+  `started: false`, whose message says what is and is not confirmed saved (do
+  not retry). Checking in: a 409 `experiment_incomplete` (the experiment cannot
+  take a check-in yet, nothing was saved).
+
 ## [0.19.1] (12 November 2026): side-effect labels, dose-limit sources, lost-connection texts
 
 Safety wording ruled by the pharmacist since 0.19.0. Nothing changes in how
